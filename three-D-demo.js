@@ -2,6 +2,7 @@
 
 import * as THREE from './three.js-master/build/three.module.js';
 import { OrbitControls } from './three.js-master/examples/jsm/controls/OrbitControls.js';
+import { GUI } from './three.js-master/examples/jsm/libs/dat.gui.module.js';
 import { parse_grid, parse_poses } from './parse-module.js';
 
 // test wasm
@@ -21,11 +22,10 @@ Module.onRuntimeInitialized = () => { _hello(); }
 
 // config
 let agent_types = ["cube", "sphere"];
-let agent_id = 0;
-let fp_mov = 60;
+let agent_id = 1;
+let fp_mov = 120;
 let pause_frame = 60;
 let per_mov = 1 / fp_mov;
-let objects = [];
 let bounce_height = [];
 let mov_para = {
     frame: 0,
@@ -36,6 +36,19 @@ let mov_para = {
 let sphere_r = 0.45;
 let ori_height = 0.5;
 let outline_h = 1;
+
+let params = {
+    speed: 13 - fp_mov / 10,
+    agent_type: agent_types[agent_id],
+    show_grid: {
+        get ShowGrid() {
+            return grid.material.visible;
+        },
+        set ShowGrid(v) {
+            grid.material.visible = v;
+        }
+    }
+}
 
 // global
 let scene = new THREE.Scene();
@@ -49,11 +62,22 @@ let total_step = 0; // steps of iteration
 let grid_w = 0, grid_h = 0; // size of grid
 let horizon_line = [], vertical_line = [];
 
+let objects = [];
+
 // load data
-let { i: grid_line, content: grid_data } = parse_grid('./data/grid_2_43.txt');
-let { i: pose_line, content: poses_data } = parse_poses('./data/poses_2_43.txt');
+let { i: grid_line, content: grid_data } = parse_grid('./data/grid_0_52.txt');
+let { i: pose_line, content: poses_data } = parse_poses('./data/poses_0_52.txt');
 
 init();
+create_GUI();
+
+// create config pad
+function create_GUI() {
+    let gui = new GUI();
+    gui.add(params, "speed", 1, 10, 1).name('Speed');
+    gui.add(params, "agent_type").name('Agent type').options(agent_types);
+    gui.add(params.show_grid,"ShowGrid").name('Show Grid');
+}
 
 // compute the shape of pattern to draw the outline
 function outline_grid() {
@@ -140,8 +164,8 @@ function build_outline_wall() {
         let mesh = new THREE.Mesh(geometry, materialY);
         mesh.position.x = (start_node + end_node) / 2;
         mesh.position.y = row;
-        mesh.position.z = outline_h/2;
-        mesh.rotateX(Math.PI/2);
+        mesh.position.z = outline_h / 2;
+        mesh.rotateX(Math.PI / 2);
         scene.add(mesh);
     }
     let materialX = new THREE.ShaderMaterial({
@@ -159,17 +183,18 @@ function build_outline_wall() {
         side: THREE.DoubleSide
     });
     for (let line of vertical_line) {
-        let col = line[0] - grid_w/2, end_node = grid_w / 2 - line[1], start_node = grid_w / 2 - line[2];
+        let col = line[0] - grid_w / 2, end_node = grid_w / 2 - line[1], start_node = grid_w / 2 - line[2];
         let geometry = new THREE.PlaneGeometry(outline_h, end_node - start_node);
         let mesh = new THREE.Mesh(geometry, materialX);
         mesh.position.y = (start_node + end_node) / 2;
         mesh.position.x = col;
-        mesh.position.z = outline_h/2;
-        mesh.rotateY(Math.PI/2);
+        mesh.position.z = outline_h / 2;
+        mesh.rotateY(Math.PI / 2);
         scene.add(mesh);
     }
 }
 
+//==================agent generation=========================
 function cube_generate() {
     // a cube
     let material = new THREE.MeshBasicMaterial({
@@ -190,10 +215,12 @@ function cube_generate() {
 }
 
 function sphere_generate() {
-    let material = new THREE.MeshBasicMaterial({
-        color: 0xfc2701, polygonOffset: true,
+    let material = new THREE.MeshPhongMaterial({
+        color: 0xb62616, polygonOffset: true,
         polygonOffsetFactor: 0.1,
-        polygonOffsetUnits: 2
+        polygonOffsetUnits: 2,
+        shininess: 5,
+        specular: 0xdb504b
     });
     for (let i = 0; i < agents_num; i++) {
         let geometry = new THREE.SphereBufferGeometry(sphere_r, 32, 32);
@@ -207,6 +234,7 @@ function sphere_generate() {
         bounce_height.push(Math.random() * 5 + 2);
     }
 }
+//===============================================================
 
 function init() {
     // load data
@@ -234,6 +262,13 @@ function init() {
     controls.update();
     controls.enablePan = false;
     controls.enableDamping = true;
+
+    // light
+    let light = new THREE.DirectionalLight(0xffffff, 1.2);
+    light.position.set(0, 0, 10);
+    scene.add(light);
+    let Amblight = new THREE.AmbientLight(0x404040); // soft white light
+    scene.add(Amblight);
 
     // grid
     grid = new THREE.GridHelper(grid_line, grid_line, 0xf9fbe9, 0xf9fbe9);
@@ -303,6 +338,13 @@ function reset() {
     mov_para.frame = 0;
 }
 
+function clear_agents() {
+    for (let obj of objects) {
+        scene.remove(obj);
+    }
+    objects.length = 0;
+}
+
 function agent_move_cube() {
     if (mov_para.step >= total_step - 1) {
         mov_para.frame++;
@@ -350,7 +392,25 @@ function agent_move_sphere() {
 let animate = function () {
     requestAnimationFrame(animate);
 
-    agent_move_sphere();
+    // update the speed of agents
+    if (mov_para.frame === 0) {
+        fp_mov = (13 - params.speed) * 10;
+        per_mov = 1 / fp_mov;
+    }
+    if (params.agent_type !== agent_types[agent_id]) {
+        clear_agents();
+        agent_id = agent_types.indexOf(params.agent_type);
+        if (params.agent_type === 'cube') {
+            cube_generate();
+        } else if (params.agent_type === 'sphere') {
+            sphere_generate();
+        }
+        reset();
+    }
+    if (agent_types[agent_id] === 'cube')
+        agent_move_cube();
+    else if (agent_types[agent_id] === 'sphere')
+        agent_move_sphere();
     controls.update();
 
     renderer.render(scene, camera);
