@@ -74,11 +74,6 @@ const loader = new THREE.TextureLoader();
 const shadowTexture = loader.load('./roundshadow.png'); // load the fake shadow texture
 const planeSize = 1;
 const shadowGeo = new THREE.PlaneBufferGeometry(planeSize, planeSize);
-const shadowMat = new THREE.MeshBasicMaterial({
-    map: shadowTexture,
-    transparent: true,
-    depthWrite: false,
-});
 
 init();
 create_GUI();
@@ -234,22 +229,34 @@ function sphere_generate() {
         polygonOffsetFactor: 0.1,
         polygonOffsetUnits: 2,
     });
+
     for (let i = 0; i < agents_num; i++) {
+        // create group for the integrity of sphere and shadow
         let base = new THREE.Object3D(); // sphere & shadow
         scene.add(base);
 
+        // create shpere
         let geometry = new THREE.SphereBufferGeometry(sphere_r, 32, 32);
         let sphere = new THREE.Mesh(geometry, material);
         let [x, y] = poses_data[2][i];
         sphere.position.z = 0.5;
         base.add(sphere);
 
+        // material for shadow
+        let shadowMat = new THREE.MeshBasicMaterial({
+            map: shadowTexture,
+            transparent: true,
+            depthWrite: false,
+        });
+
+        // create shadow
         let shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
         shadowMesh.position.z = 0.001;  // so we're above the ground slightly
         const shadowSize = sphere_r * 4;
         shadowMesh.scale.set(shadowSize, shadowSize, shadowSize);
         base.add(shadowMesh);
 
+        // set the location of the integrity
         base.position.y = y - grid_h / 2 + 0.5;
         base.position.x = x - grid_w / 2 + 0.5;
 
@@ -257,7 +264,6 @@ function sphere_generate() {
         groups.push(base);
         shadows.push(shadowMesh);
         objects.push(sphere);
-        console.log(base);
     }
 }
 //===============================================================
