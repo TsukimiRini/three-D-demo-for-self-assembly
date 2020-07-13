@@ -63,10 +63,22 @@ let grid_w = 0, grid_h = 0; // size of grid
 let horizon_line = [], vertical_line = [];
 
 let objects = [];
+let shadows = [];
+let groups = [];
 
 // load data
 let { i: grid_line, content: grid_data } = parse_grid('./data/grid_0_52.txt');
 let { i: pose_line, content: poses_data } = parse_poses('./data/poses_0_52.txt');
+// load shadow texture & create shadow geometry and material
+const loader = new THREE.TextureLoader();
+const shadowTexture = loader.load('./roundshadow.png'); // load the fake shadow texture
+const planeSize = 1;
+const shadowGeo = new THREE.PlaneBufferGeometry(planeSize, planeSize);
+const shadowMat = new THREE.MeshBasicMaterial({
+    map: shadowTexture,
+    transparent: true,
+    depthWrite: false,
+});
 
 init();
 create_GUI();
@@ -76,7 +88,7 @@ function create_GUI() {
     let gui = new GUI();
     gui.add(params, "speed", 1, 10, 1).name('Speed');
     gui.add(params, "agent_type").name('Agent type').options(agent_types);
-    gui.add(params.show_grid,"ShowGrid").name('Show Grid');
+    gui.add(params.show_grid, "ShowGrid").name('Show Grid');
 }
 
 // compute the shape of pattern to draw the outline
@@ -197,13 +209,15 @@ function build_outline_wall() {
 //==================agent generation=========================
 function cube_generate() {
     // a cube
-    let material = new THREE.MeshBasicMaterial({
-        color: 0xfc2701, polygonOffset: true,
+    let material = new THREE.MeshPhongMaterial({
+        color: 0xb62616, polygonOffset: true,
         polygonOffsetFactor: 0.1,
-        polygonOffsetUnits: 2
+        polygonOffsetUnits: 2,
+        shininess: 5,
+        specular: 0xdb504b
     });
     for (let i = 0; i < agents_num; i++) {
-        let geometry = new THREE.BoxGeometry(1, 1, 1);
+        let geometry = new THREE.BoxGeometry(0.9, 0.9, 1);
         let cube = new THREE.Mesh(geometry, material);
         let [x, y] = poses_data[2][i];
         cube.position.y = y - grid_h / 2 + 0.5;
@@ -219,19 +233,31 @@ function sphere_generate() {
         color: 0xb62616, polygonOffset: true,
         polygonOffsetFactor: 0.1,
         polygonOffsetUnits: 2,
-        shininess: 5,
-        specular: 0xdb504b
     });
     for (let i = 0; i < agents_num; i++) {
+        let base = new THREE.Object3D(); // sphere & shadow
+        scene.add(base);
+
         let geometry = new THREE.SphereBufferGeometry(sphere_r, 32, 32);
         let sphere = new THREE.Mesh(geometry, material);
         let [x, y] = poses_data[2][i];
-        sphere.position.y = y - grid_h / 2 + 0.5;
-        sphere.position.x = x - grid_w / 2 + 0.5;
         sphere.position.z = 0.5;
-        scene.add(sphere);
+        base.add(sphere);
+
+        let shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
+        shadowMesh.position.z = 0.001;  // so we're above the ground slightly
+        const shadowSize = sphere_r * 4;
+        shadowMesh.scale.set(shadowSize, shadowSize, shadowSize);
+        base.add(shadowMesh);
+
+        base.position.y = y - grid_h / 2 + 0.5;
+        base.position.x = x - grid_w / 2 + 0.5;
+
+        // remember the integrity of sphere and shadow
+        groups.push(base);
+        shadows.push(shadowMesh);
         objects.push(sphere);
-        bounce_height.push(Math.random() * 5 + 2);
+        console.log(base);
     }
 }
 //===============================================================
@@ -264,11 +290,23 @@ function init() {
     controls.enableDamping = true;
 
     // light
-    let light = new THREE.DirectionalLight(0xffffff, 1.2);
-    light.position.set(0, 0, 10);
-    scene.add(light);
-    let Amblight = new THREE.AmbientLight(0x404040); // soft white light
-    scene.add(Amblight);
+    {
+        const skyColor = 0xB1E1FF;  // light blue
+        const groundColor = 0xB97A20;  // brownish orange
+        const intensity = 2;
+        const light = new THREE.HemisphereLight(skyColor, groundColor, intensity);
+        scene.add(light);
+    }
+
+    {
+        const color = 0xFFFFFF;
+        const intensity = 1;
+        const light = new THREE.DirectionalLight(color, intensity);
+        light.position.set(0, 0, 10);
+        light.target.position.set(-3, 0, 0);
+        scene.add(light);
+        scene.add(light.target);
+    }
 
     // grid
     grid = new THREE.GridHelper(grid_line, grid_line, 0xf9fbe9, 0xf9fbe9);
@@ -338,11 +376,38 @@ function reset() {
     mov_para.frame = 0;
 }
 
+function reset_group() {
+    mov_para.step = 0;
+    for (let i = 0; i < agents_num; i++) {
+        let [x, y] = poses_data[2][i];
+        groups[i].position.y = y - grid_h / 2 + 0.5;
+        groups[i].position.x = x - grid_w / 2 + 0.5;
+        objects[i].position.z = ori_height;
+    }
+    mov_para.dirX = 0;
+    mov_para.dirY = 0;
+    mov_para.frame = 0;
+}
+
 function clear_agents() {
+    if (groups.length) {
+        for (let group of groups)
+            scene.remove(group);
+        groups.length = 0;
+        objects.length = 0;
+        shadows.length = 0;
+        return;
+    }
+
     for (let obj of objects) {
         scene.remove(obj);
     }
     objects.length = 0;
+
+    for (let obj of shadows) {
+        scene.remove(obj);
+    }
+    shadows.length = 0;
 }
 
 function agent_move_cube() {
@@ -370,7 +435,7 @@ function agent_move_sphere() {
     if (mov_para.step >= total_step - 1) {
         mov_para.frame++;
         if (mov_para.frame === pause_frame) {
-            reset();
+            reset_group();
         }
         return;
     }
@@ -378,10 +443,13 @@ function agent_move_sphere() {
     for (let i = 0; i < agents_num; i++) {
         mov_para.dirX = poses_data[mov_para.step * 2 + 4][i][0] - poses_data[mov_para.step * 2 + 2][i][0];
         mov_para.dirY = poses_data[mov_para.step * 2 + 4][i][1] - poses_data[mov_para.step * 2 + 2][i][1];
-        objects[i].position.x += mov_para.dirX * per_mov;
-        objects[i].position.y += mov_para.dirY * per_mov;
-        if (mov_para.dirX || mov_para.dirY)
-            objects[i].position.z = 1.5 * Math.sin(Math.PI / fp_mov * mov_para.frame) + ori_height;
+        groups[i].position.x += mov_para.dirX * per_mov;
+        groups[i].position.y += mov_para.dirY * per_mov;
+        if (mov_para.dirX || mov_para.dirY){
+            let offset = Math.sin(Math.PI / fp_mov * mov_para.frame);
+            objects[i].position.z = 1.5 * offset + ori_height;
+            shadows[i].material.opacity = THREE.MathUtils.lerp(0.8, .25, offset);
+        }
     }
     mov_para.frame = (mov_para.frame + 1) % fp_mov;
     if (mov_para.frame === 0) {
@@ -402,10 +470,11 @@ let animate = function () {
         agent_id = agent_types.indexOf(params.agent_type);
         if (params.agent_type === 'cube') {
             cube_generate();
+            reset();
         } else if (params.agent_type === 'sphere') {
             sphere_generate();
+            reset_group();
         }
-        reset();
     }
     if (agent_types[agent_id] === 'cube')
         agent_move_cube();
