@@ -4,6 +4,7 @@ import * as THREE from './three.js-master/build/three.module.js';
 import { OrbitControls } from './three.js-master/examples/jsm/controls/OrbitControls.js';
 import { GUI } from './three.js-master/examples/jsm/libs/dat.gui.module.js';
 import { parse_grid, parse_poses } from './parse-module.js';
+import * as CUSTOM_PAD from './custom_module.js';
 
 // test wasm
 // async function fetchAndInstantiate() {
@@ -20,10 +21,11 @@ import { parse_grid, parse_poses } from './parse-module.js';
 //       });
 Module.onRuntimeInitialized = () => { _hello(); }
 
+// ======================parameter===============================
 // config
 let agent_types = ["cube", "sphere"];
 let agent_id = 1;
-let fp_mov = 120;
+let fp_mov = 80;
 let pause_frame = 60;
 let per_mov = 1 / fp_mov;
 let bounce_height = [];
@@ -47,7 +49,8 @@ let params = {
         set ShowGrid(v) {
             grid.material.visible = v;
         }
-    }
+    },
+    custom_pad: CUSTOM_PAD.popup_custom_pad
 }
 
 // global
@@ -66,6 +69,13 @@ let objects = [];
 let shadows = [];
 let groups = [];
 
+let window_margin = 50;
+// ================================================================
+
+// ========================main====================================
+window.onload = function () {
+    CUSTOM_PAD.init_custom_pad();
+}
 // load data
 let { i: grid_line, content: grid_data } = parse_grid('./data/grid_0_52.txt');
 let { i: pose_line, content: poses_data } = parse_poses('./data/poses_0_52.txt');
@@ -77,13 +87,16 @@ const shadowGeo = new THREE.PlaneBufferGeometry(planeSize, planeSize);
 
 init();
 create_GUI();
+// =================================================================
 
 // create config pad
 function create_GUI() {
-    let gui = new GUI();
+    let gui = new GUI({ autoPlace: false });
+    document.getElementById("GUI").appendChild(gui.domElement);
     gui.add(params, "speed", 1, 10, 1).name('Speed');
     gui.add(params, "agent_type").name('Agent type').options(agent_types);
     gui.add(params.show_grid, "ShowGrid").name('Show Grid');
+    gui.add(params, 'custom_pad').name('Custom config');
 }
 
 // compute the shape of pattern to draw the outline
@@ -154,7 +167,7 @@ function build_outline_wall() {
     let materialY = new THREE.ShaderMaterial({
         uniforms: {
             color1: {
-                value: new THREE.Color(0x669999)
+                value: new THREE.Color(0x2B2D42)
             },
             color2: {
                 value: new THREE.Color("purple")
@@ -205,7 +218,7 @@ function build_outline_wall() {
 function cube_generate() {
     // a cube
     let material = new THREE.MeshPhongMaterial({
-        color: 0xb62616, polygonOffset: true,
+        color: 0x7C3C3C, polygonOffset: true,
         polygonOffsetFactor: 0.1,
         polygonOffsetUnits: 2,
         shininess: 5,
@@ -225,7 +238,7 @@ function cube_generate() {
 
 function sphere_generate() {
     let material = new THREE.MeshPhongMaterial({
-        color: 0xb62616, polygonOffset: true,
+        color: 0x7C3C3C, polygonOffset: true,
         polygonOffsetFactor: 0.1,
         polygonOffsetUnits: 2,
     });
@@ -239,7 +252,7 @@ function sphere_generate() {
         let geometry = new THREE.SphereBufferGeometry(sphere_r, 32, 32);
         let sphere = new THREE.Mesh(geometry, material);
         let [x, y] = poses_data[2][i];
-        sphere.position.z = 0.5;
+        sphere.position.z = sphere_r;
         base.add(sphere);
 
         // material for shadow
@@ -282,11 +295,14 @@ function init() {
     build_outline_wall();
 
     scene.background = new THREE.Color(0xe0e0e0);
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera = new THREE.PerspectiveCamera(75, (window.innerWidth - 2 * window_margin) / (window.innerHeight - 2 * window_margin), 0.1, 1000);
 
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    console.log(window.innerHeight - 2 * window_margin, window.innerWidth - 2 * window_margin);
+    renderer.setSize(window.innerWidth - 2 * window_margin, window.innerHeight - 2 * window_margin);
     renderer.sortObjects = false;
-    document.body.appendChild(renderer.domElement);
+    renderer.domElement.style["margin"] = `${window_margin},${window_margin},${window_margin},${window_margin}`;
+    console.log("dom:", renderer.domElement.style["margin"]);
+    document.getElementById("threeJS").appendChild(renderer.domElement);
 
     // viewpoint controller
     controls = new OrbitControls(camera, renderer.domElement);
@@ -315,7 +331,7 @@ function init() {
     }
 
     // grid
-    grid = new THREE.GridHelper(grid_line, grid_line, 0xf9fbe9, 0xf9fbe9);
+    grid = new THREE.GridHelper(grid_line, grid_line, 0xD5D5E0, 0xD5D5E0);
     grid.material.opacity = 1;
     grid.material.transparent = true;
     grid.material.polygonOffset = true;
@@ -331,12 +347,12 @@ function init() {
     let geometry = new THREE.PlaneGeometry(grid_line, grid_line, grid_line, grid_line);
     let mats = [];
     let material = new THREE.MeshBasicMaterial({
-        color: 0xcae5fe, side: THREE.DoubleSide
-    });
+        color: 0xC0CDCF, side: THREE.DoubleSide
+    }); // plane material
     mats.push(material);
     material = new THREE.MeshBasicMaterial({
-        color: 0xffffff, side: THREE.DoubleSide
-    });
+        color: 0xEEE0CB, side: THREE.DoubleSide
+    }); // target material
     mats.push(material);
     let plane = new THREE.Mesh(geometry, mats);
     console.log(geometry);
@@ -354,17 +370,17 @@ function init() {
     console.log(geometry);
 
     // axis
-    var axesHelper = new THREE.AxesHelper(grid_line);
-    scene.add(axesHelper);
+    // var axesHelper = new THREE.AxesHelper(grid_line);
+    // scene.add(axesHelper);
 
     camera.position.z = 60;
 
     window.onresize = function () {
 
-        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.aspect = (window.innerWidth - 2 * window_margin) / (window.innerHeight - 2 * window_margin);
         camera.updateProjectionMatrix();
 
-        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setSize(window.innerWidth - 2 * window_margin, window.innerHeight - 2 * window_margin);
 
     };
 }
@@ -451,10 +467,10 @@ function agent_move_sphere() {
         mov_para.dirY = poses_data[mov_para.step * 2 + 4][i][1] - poses_data[mov_para.step * 2 + 2][i][1];
         groups[i].position.x += mov_para.dirX * per_mov;
         groups[i].position.y += mov_para.dirY * per_mov;
-        if (mov_para.dirX || mov_para.dirY){
+        if (mov_para.dirX || mov_para.dirY) {
             let offset = Math.sin(Math.PI / fp_mov * mov_para.frame);
             objects[i].position.z = 1.5 * offset + ori_height;
-            shadows[i].material.opacity = THREE.MathUtils.lerp(0.8, .25, offset);
+            shadows[i].material.opacity = THREE.MathUtils.lerp(0.8, .15, offset);
         }
     }
     mov_para.frame = (mov_para.frame + 1) % fp_mov;

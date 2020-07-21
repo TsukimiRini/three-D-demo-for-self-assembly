@@ -25,5 +25,6 @@ test/unit/build
 three.js-master/
 *.bat
 *.png
+*.pdf
 data/
 

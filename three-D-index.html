@@ -1,13 +1,40 @@
 <html>
-	<head>
-		<title>My first three.js app</title>
-		<style>
-			body { margin: 0; }
-			canvas { display: block; }
-		</style>
-	</head>
-	<body>
-		<script async type="text/javascript" src="back-end.js"></script>  
-		<script type="module" src="./three-D-demo.js"></script>
-	</body>
+
+<head>
+	<title>My first three.js app</title>
+	<style>
+		body {
+			margin: 0;
+		}
+
+		.center_block {
+			margin: 50px 50px 50px 50px;
+			z-index: 0;
+		}
+		#GUI{
+			position: absolute;
+		}
+
+		canvas {
+			display: block;
+		}
+	</style>
+	<link rel="stylesheet" type="text/css" href="custom_ui.css">
+</head>
+
+<body>
+	<script async type="text/javascript" src="back-end.js"></script>
+	<script type="module" src="./three-D-demo.js"></script>
+	<div class="center_block">
+		<div id="threeJS"><div id="GUI"></div></div>
+	</div>
+	<div class="custom_bg">
+		<span class="helper"></span>
+		<div>
+			<div class="popupCloseButton">&times;</div>
+			<p>Add any HTML content<br />inside the popup box!</p>
+		</div>
+	</div>
+</body>
+
 </html>
