@@ -92,11 +92,15 @@ create_GUI();
 // create config pad
 function create_GUI() {
     let gui = new GUI({ autoPlace: false });
+    // 动画渲染参数设置
+    let animation = gui.addFolder("Animation");
+    // 自定义形状设置
+    let custom_folder = gui.addFolder("Custom Shape Setting");
     document.getElementById("GUI").appendChild(gui.domElement);
-    gui.add(params, "speed", 1, 10, 1).name('Speed');
-    gui.add(params, "agent_type").name('Agent type').options(agent_types);
-    gui.add(params.show_grid, "ShowGrid").name('Show Grid');
-    gui.add(params, 'custom_pad').name('Custom config');
+    animation.add(params, "speed", 1, 10, 1).name('Speed');
+    animation.add(params, "agent_type").name('Agent type').options(agent_types);
+    animation.add(params.show_grid, "ShowGrid").name('Show Grid');
+    custom_folder.add(params, 'custom_pad').name('Custom config');
 }
 
 // compute the shape of pattern to draw the outline
@@ -300,8 +304,6 @@ function init() {
     console.log(window.innerHeight - 2 * window_margin, window.innerWidth - 2 * window_margin);
     renderer.setSize(window.innerWidth - 2 * window_margin, window.innerHeight - 2 * window_margin);
     renderer.sortObjects = false;
-    renderer.domElement.style["margin"] = `${window_margin},${window_margin},${window_margin},${window_margin}`;
-    console.log("dom:", renderer.domElement.style["margin"]);
     document.getElementById("threeJS").appendChild(renderer.domElement);
 
     // viewpoint controller

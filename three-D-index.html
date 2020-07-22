@@ -11,7 +11,8 @@
 			margin: 50px 50px 50px 50px;
 			z-index: 0;
 		}
-		#GUI{
+
+		#GUI {
 			position: absolute;
 		}
 
@@ -20,20 +21,44 @@
 		}
 	</style>
 	<link rel="stylesheet" type="text/css" href="custom_ui.css">
+	<link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Inconsolata" />
 </head>
 
 <body>
 	<script async type="text/javascript" src="back-end.js"></script>
 	<script type="module" src="./three-D-demo.js"></script>
 	<div class="center_block">
-		<div id="threeJS"><div id="GUI"></div></div>
+		<div id="threeJS">
+			<div id="GUI"></div>
+		</div>
 	</div>
 	<div class="custom_bg">
 		<span class="helper"></span>
 		<div>
 			<div class="popupCloseButton">&times;</div>
-			<p>Add any HTML content<br />inside the popup box!</p>
+			<div class="custom_row">
+				<label class="custom_title">Grid Size</label>
+			</div>
+			<div class="custom_row" style="text-align: center;">
+				<div class="column-2">Width:<input class="input_box" id="width" value=30></input></div>
+				<div class="column-2">Height:<input class="input_box" id="height" value=30></input></div>
+			</div>
+			<div class="custom_row">
+				<label class="custom_title">Shape Setting</label>
+				<button type="button" class="cancel" id="reset" style="width: 50px;height: 25px;font-size: 13px;">Reset</button>
+			</div>
+			<div style="text-align: center;">
+				<div id="shape_selector"></div>
+			</div>
+			
+			<div class="custom_row" style="text-align: center;">
+				<button type="button" class="confirm" id="apply">Apply</button>
+				<button type="button" class="cancel" id="cancel">Cancel</button>
+			</div>
+
 		</div>
+	</div>
+	</div>
 	</div>
 </body>
 
