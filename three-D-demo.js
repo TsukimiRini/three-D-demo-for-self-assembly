@@ -50,7 +50,8 @@ let params = {
             grid.material.visible = v;
         }
     },
-    custom_pad: CUSTOM_PAD.popup_custom_pad
+    custom_pad: CUSTOM_PAD.popup_custom_pad,
+    image_upload_pad: CUSTOM_PAD.show_image_upload_popup,
 }
 
 // global
@@ -100,7 +101,8 @@ function create_GUI() {
     animation.add(params, "speed", 1, 10, 1).name('Speed');
     animation.add(params, "agent_type").name('Agent type').options(agent_types);
     animation.add(params.show_grid, "ShowGrid").name('Show Grid');
-    custom_folder.add(params, 'custom_pad').name('Custom config');
+    custom_folder.add(params, 'custom_pad').name('Draw a shape');
+    custom_folder.add(params, 'image_upload_pad').name('Upload a pic')
 }
 
 // compute the shape of pattern to draw the outline

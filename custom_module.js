@@ -1,7 +1,7 @@
 "use strict"
 
-let close_btn = document.getElementsByClassName("popupCloseButton")[0];
-let custom_pad = document.getElementsByClassName("custom_bg")[0];
+let close_btn_custom_shape = document.getElementById("custom_shape_close");
+let custom_pad = document.getElementById("custom_shape_popup");
 let width_ipt = document.getElementById("width");
 let height_ipt = document.getElementById("height");
 let width = 30, height = 30;
@@ -11,9 +11,25 @@ let shape_data = [];
 let new_shape_data = [];
 
 function init_custom_pad() {
-    close_btn.onclick = function () {
-        custom_pad.style.display = 'none';
+    // 设置右上角叉叉关闭窗口功能
+    close_btn_custom_shape.onclick = function () {
+        hide_custom_shape_popup();
     }
+    close_image_btn.onclick = function () {
+        hide_image_upload_popup();
+    }
+
+    // 文件上传美化
+    document.getElementById("file_wrapper").onclick = function () {
+        document.getElementById("file_uploader").click();
+    }
+    document.getElementById("file_uploader").addEventListener("change", function () {
+        if (this.value.length == 0) {
+            document.getElementById("file_name").textContent = "image to be uploaded...";
+            return;
+        }
+        document.getElementById("file_name").textContent = this.value;
+    })
 
     let shape_selector = document.getElementById("shape_selector");
     // 用户更改grid的规模时改变形状选择中生成的图示。
@@ -66,26 +82,26 @@ function init_custom_pad() {
     document.getElementById("apply").onclick = function () {
         shape_data = new_shape_data;
         console.log(shape_data);
-        hide_popup();
+        hide_custom_shape_popup();
     }
     document.getElementById("reset").onclick = function () {
         width_ipt.onchange();
     }
     document.getElementById("cancel").onclick = function () {
-        hide_popup();
+        hide_custom_shape_popup();
     }
 }
 
-function show_popup() {
+function show_custom_shape_popup() {
     custom_pad.style.display = 'block';
 }
 
-function hide_popup() {
+function hide_custom_shape_popup() {
     custom_pad.style.display = 'none';
 }
 
 function popup_custom_pad() {
-    show_popup();
+    show_custom_shape_popup();
     if (first_time) {
         console.log("sdasd")
         width_ipt.onchange();
@@ -93,4 +109,16 @@ function popup_custom_pad() {
     }
 }
 
-export { init_custom_pad, popup_custom_pad };
+// 图片上传弹窗
+let image_upload_pad = document.getElementById("image_shape_popup");
+let close_image_btn = document.getElementById("image_shape_close");
+
+function show_image_upload_popup() {
+    image_upload_pad.style.display = 'block';
+}
+
+function hide_image_upload_popup() {
+    image_upload_pad.style.display = 'none';
+}
+
+export { init_custom_pad, popup_custom_pad, show_image_upload_popup };
