@@ -23,8 +23,10 @@ test/unit/build
 **/node_modules
 
 three.js-master/
+splide-2.4.8
 *.bat
 *.png
 *.pdf
+*.zip
 data/
 

@@ -20,12 +20,13 @@
 			display: block;
 		}
 	</style>
-	<link rel="stylesheet" type="text/css" href="custom_ui.css">
+	<link rel="stylesheet" type="text/css" href="css/custom_ui.css">
 	<link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Inconsolata" />
 </head>
 
 <body>
 	<script async type="text/javascript" src="back-end.js"></script>
+	<script src="./splide-2.4.8/dist/js/splide.min.js"></script>
 	<script type="module" src="./three-D-demo.js"></script>
 	<div class="center_block">
 		<div id="threeJS">
@@ -72,17 +73,40 @@
 				<button class="upload" id="file_wrapper" style="width: auto;">click here to upload</button>
 				<p id="file_name" style="font-family: Inconsolata, Helvetica;">image to be uploaded...</p>
 				<input type="file" name="" id="file_uploader" accept='image/*' style="display: none;">
-				<!-- <a href="javascript:;" class="lookFile"
-					style="line-height:22px;text-decoration:none;color:#FFF;">文件上传</a>
-				<input
-					style="width:100%;height:100%;cursor:pointer;opacity:0;position:absolute;top:0px;left:0;font-size:0;"
-					accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
-					onclick="alert(`定义方法`)" type="file" class="updateFile" value="上传文件"> -->
-				<!--<br><img id="myImg" src="#" alt="your image" height=200 width=100>-->
+				<button class="confirm" id="img_apply"">Apply</button>
+				<button type=" button" class="cancel" id="img_cancel"">Cancel</button>
+				<!-- <a href=" javascript:;" class="lookFile" style="line-height:22px;text-decoration:none;color:#FFF;">文件上传</a>
+					<input
+						style="width:100%;height:100%;cursor:pointer;opacity:0;position:absolute;top:0px;left:0;font-size:0;"
+						accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+						onclick="alert(`定义方法`)" type="file" class="updateFile" value="上传文件"> -->
+					<!--<br><img id="myImg" src="#" alt="your image" height=200 width=100>-->
 			</div>
 		</div>
 	</div>
-	</div>
+
+	<!--形状选择弹窗-->
+	<div class="custom_bg" id="predefined_shape_selector">
+		<span class="helper"></span>
+		<div>
+			<div class="custom_row">
+				<div id="shape-slider" class="splide">
+					<div class="splide__track">
+						<ul class="splide__list">
+							<li class="splide__slide">
+								<img src="img/image1.png">
+							</li>
+							<li class="splide__slide">
+								<img src="img/image2.png">
+							</li>
+							<li class="splide__slide">
+								<img src="img/image1.png">
+							</li>
+						</ul>
+					</div>
+				</div>
+			</div>
+		</div>
 	</div>
 </body>
 

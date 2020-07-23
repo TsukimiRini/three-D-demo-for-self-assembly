@@ -1,10 +1,10 @@
 "use strict"
 
-import * as THREE from '../three.js-master/build/three.module.js';
-import { OrbitControls } from '../three.js-master/examples/jsm/controls/OrbitControls.js';
-import { GUI } from '../three.js-master/examples/jsm/libs/dat.gui.module.js';
-import { parse_grid, parse_poses } from './js/parse-module.js';
-import * as CUSTOM_PAD from './js/custom_module.js';
+import * as THREE from './three.js-master/build/three.module.js';
+import { OrbitControls } from './three.js-master/examples/jsm/controls/OrbitControls.js';
+import { GUI } from './three.js-master/examples/jsm/libs/dat.gui.module.js';
+import { parse_grid, parse_poses } from './parse-module.js';
+import * as CUSTOM_PAD from './custom_module.js';
 
 // test wasm
 // async function fetchAndInstantiate() {
@@ -78,11 +78,11 @@ window.onload = function () {
     CUSTOM_PAD.init_custom_pad();
 }
 // load data
-let { i: grid_line, content: grid_data } = parse_grid('../data/grid_0_52.txt');
-let { i: pose_line, content: poses_data } = parse_poses('../data/poses_0_52.txt');
+let { i: grid_line, content: grid_data } = parse_grid('./data/grid_0_52.txt');
+let { i: pose_line, content: poses_data } = parse_poses('./data/poses_0_52.txt');
 // load shadow texture & create shadow geometry and material
 const loader = new THREE.TextureLoader();
-const shadowTexture = loader.load('./img/roundshadow.png'); // load the fake shadow texture
+const shadowTexture = loader.load('./roundshadow.png'); // load the fake shadow texture
 const planeSize = 1;
 const shadowGeo = new THREE.PlaneBufferGeometry(planeSize, planeSize);
 
