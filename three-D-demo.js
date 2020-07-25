@@ -1,10 +1,11 @@
 "use strict"
 
-import * as THREE from '../three.js-master/build/three.module.js';
-import { OrbitControls } from '../three.js-master/examples/jsm/controls/OrbitControls.js';
-import { GUI } from '../three.js-master/examples/jsm/libs/dat.gui.module.js';
+import * as THREE from './three.js-master/build/three.module.js';
+import { OrbitControls } from './three.js-master/examples/jsm/controls/OrbitControls.js';
+import { GUI } from './three.js-master/examples/jsm/libs/dat.gui.module.js';
 import { parse_grid, parse_poses } from './js/parse-module.js';
 import * as CUSTOM_PAD from './js/custom_module.js';
+import * as STORED_SHAPE_PAD from './js/stored_shape_module.js';
 
 // test wasm
 // async function fetchAndInstantiate() {
@@ -52,6 +53,7 @@ let params = {
     },
     custom_pad: CUSTOM_PAD.popup_custom_pad,
     image_upload_pad: CUSTOM_PAD.show_image_upload_popup,
+    stored_shape_pad: STORED_SHAPE_PAD.popup_stored_shape
 }
 
 // global
@@ -86,6 +88,7 @@ const shadowTexture = loader.load('./img/roundshadow.png'); // load the fake sha
 const planeSize = 1;
 const shadowGeo = new THREE.PlaneBufferGeometry(planeSize, planeSize);
 
+STORED_SHAPE_PAD.init_stored_shape();
 init();
 create_GUI();
 // =================================================================
@@ -103,6 +106,7 @@ function create_GUI() {
     animation.add(params.show_grid, "ShowGrid").name('Show Grid');
     custom_folder.add(params, 'custom_pad').name('Draw a shape');
     custom_folder.add(params, 'image_upload_pad').name('Upload a pic')
+    gui.add(params, "stored_shape_pad").name("Select a shape");
 }
 
 // compute the shape of pattern to draw the outline

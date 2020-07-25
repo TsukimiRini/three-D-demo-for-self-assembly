@@ -1,0 +1,41 @@
+.splide__slide img {
+    height: 200px;
+    width: auto;
+}
+
+.splide__slide{
+    opacity: 30%;
+}
+
+.splide__slide.is-active{
+    opacity: 100%;
+}
+
+.pair_radio{
+    display: inline;
+}
+
+.radio_lbl{
+    background: #D0EEFF;
+    border: 1px solid #99D3F5;
+    border-radius: 4px;
+    color: #1E88C7;
+    line-height: 20px;
+    padding: 3px 3px 3px 3px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.radio_lbl:hover,input:checked + label{
+    background: #AADFFD;
+    border-color: #78C3F3;
+    color: #004974;
+}
+
+input:checked + label{
+    box-shadow: inset 0 1px 1px rgba(0,0,0,.075),0 0 8px rgba(102,175,233,.6)
+}
+
+.stored_shape_size_radio{
+    display: none;
+}

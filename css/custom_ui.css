@@ -71,9 +71,10 @@
     vertical-align: middle;
 }
 .custom_title{
-    line-height: 50px;
+    line-height: 60px;
     font-family: "Palatino Linotype",serif;
     font-size: 30px;
+    margin-top: 10px;
 }
 .input_box{
     outline-style: none ;
@@ -94,7 +95,7 @@
     border-radius: 4px;
     text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
     border-style: none;
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: 'Open Sans',Arial, Helvetica, sans-serif;
     height: 35px;
     width: 80px;
     font-size: 16px;

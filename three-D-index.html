@@ -1,7 +1,7 @@
 <html>
 
 <head>
-	<title>My first three.js app</title>
+	<title>three-D-demo</title>
 	<style>
 		body {
 			margin: 0;
@@ -21,7 +21,11 @@
 		}
 	</style>
 	<link rel="stylesheet" type="text/css" href="css/custom_ui.css">
+	<link rel="stylesheet" type="text/css" href="css/stored_shape_ui.css">
 	<link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Inconsolata" />
+	<link rel="stylesheet" type="text/css" href='//fonts.googleapis.com/css?family=Open+Sans:400,600' />
+	<!-- Link to the file hosted on your server, -->
+	<link rel="stylesheet" href="./splide-2.4.8/dist/css/splide.min.css">
 </head>
 
 <body>
@@ -89,22 +93,40 @@
 	<div class="custom_bg" id="predefined_shape_selector">
 		<span class="helper"></span>
 		<div>
+			<div class="popupCloseButton" id="stored_shape_close">&times;</div>
 			<div class="custom_row">
-				<div id="shape-slider" class="splide">
-					<div class="splide__track">
-						<ul class="splide__list">
-							<li class="splide__slide">
-								<img src="img/image1.png">
-							</li>
-							<li class="splide__slide">
-								<img src="img/image2.png">
-							</li>
-							<li class="splide__slide">
-								<img src="img/image1.png">
-							</li>
-						</ul>
-					</div>
+				<label class="custom_title">Shapes</label>
+			</div>
+			<div id="shape-slider" class="splide">
+				<div class="splide__track">
+					<ul class="splide__list">
+						<li class="splide__slide">
+							<img src="img/image1.png">
+						</li>
+						<li class="splide__slide">
+							<img src="img/image2.png">
+						</li>
+						<li class="splide__slide">
+							<img src="img/image1.png">
+						</li>
+					</ul>
 				</div>
+			</div>
+
+			<div class="custom_row">
+				<label class="custom_title">Grid Size</label>
+			</div>
+			<div class="pair_radio">
+				<input type="radio" name="grid_size" id="s1" class="stored_shape_size_radio">
+				<label class="radio_lbl" for="s1">16&times;16</label>
+			</div>
+			<div class="pair_radio">
+				<input type="radio" name="grid_size" id="s2" class="stored_shape_size_radio">
+				<label class="radio_lbl" for="s2">32&times;32</label>
+			</div>
+			<div class="custom_row" style="text-align: center;">
+				<button type="button" class="confirm" id="stored_shape_apply">Apply</button>
+				<button type="button" class="cancel" id="stored_shape_cancel">Cancel</button>
 			</div>
 		</div>
 	</div>

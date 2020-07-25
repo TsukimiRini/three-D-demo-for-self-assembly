@@ -78,7 +78,7 @@ function init_custom_pad() {
         }
     })
 
-    // 按钮逻辑
+    // 自定义形状按钮逻辑
     document.getElementById("apply").onclick = function () {
         shape_data = new_shape_data;
         console.log(shape_data);
@@ -89,6 +89,13 @@ function init_custom_pad() {
     }
     document.getElementById("cancel").onclick = function () {
         hide_custom_shape_popup();
+    }
+    // 上传图片按钮逻辑
+    document.getElementById("img_apply").onclick = function () {
+        hide_image_upload_popup();
+    }
+    document.getElementById("img_cancel").onclick = function () {
+        hide_image_upload_popup();
     }
 }
 
@@ -103,7 +110,6 @@ function hide_custom_shape_popup() {
 function popup_custom_pad() {
     show_custom_shape_popup();
     if (first_time) {
-        console.log("sdasd")
         width_ipt.onchange();
         first_time = false;
     }
