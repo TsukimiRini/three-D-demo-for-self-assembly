@@ -29,4 +29,6 @@ splide-2.4.8
 *.pdf
 *.zip
 data/
-
+self-assembely/
+js/main*
+py/

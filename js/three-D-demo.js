@@ -1,10 +1,11 @@
 "use strict"
 
-import * as THREE from './three.js-master/build/three.module.js';
-import { OrbitControls } from './three.js-master/examples/jsm/controls/OrbitControls.js';
-import { GUI } from './three.js-master/examples/jsm/libs/dat.gui.module.js';
-import { parse_grid, parse_poses } from './parse-module.js';
-import * as CUSTOM_PAD from './custom_module.js';
+import * as THREE from '../three.js-master/build/three.module.js';
+import { OrbitControls } from '../three.js-master/examples/jsm/controls/OrbitControls.js';
+import { GUI } from '../three.js-master/examples/jsm/libs/dat.gui.module.js';
+import { parse_grid, parse_poses } from '../js/parse-module.js';
+import * as CUSTOM_PAD from '../js/custom_module.js';
+import * as STORED_SHAPE_PAD from '../js/stored_shape_module.js';
 
 // test wasm
 // async function fetchAndInstantiate() {
@@ -19,7 +20,7 @@ import * as CUSTOM_PAD from './custom_module.js';
 //         var tbl = obj.instance.exports.hello;
 //         console.log(hello());  // 13
 //       });
-Module.onRuntimeInitialized = () => { _hello(); }
+// Module.onRuntimeInitialized = () => { web_worker.postMessage({"MessagePurpose":"getAgentNum"}); }
 
 // ======================parameter===============================
 // config
@@ -52,6 +53,7 @@ let params = {
     },
     custom_pad: CUSTOM_PAD.popup_custom_pad,
     image_upload_pad: CUSTOM_PAD.show_image_upload_popup,
+    stored_shape_pad: STORED_SHAPE_PAD.popup_stored_shape,
 }
 
 // global
@@ -63,32 +65,68 @@ let camera = null;
 
 let agents_num = 0;
 let total_step = 0; // steps of iteration
-let grid_w = 0, grid_h = 0; // size of grid
+let grid_w = 16, grid_h = 16; // size of grid
 let horizon_line = [], vertical_line = [];
 
 let objects = [];
 let shadows = [];
 let groups = [];
 
+let poses_data = [];// poses_data[i][2*r]:x of agent r in i-th step
+
 let window_margin = 50;
+
+let gotPoseData = false, gotAgentNum = false;
 // ================================================================
 
 // ========================main====================================
-window.onload = function () {
+window.addEventListener("load", function () {
     CUSTOM_PAD.init_custom_pad();
-}
+});
 // load data
-let { i: grid_line, content: grid_data } = parse_grid('./data/grid_0_52.txt');
-let { i: pose_line, content: poses_data } = parse_poses('./data/poses_0_52.txt');
+let { i: grid_line, content: grid_data } = parse_grid('../data/grid_2_43.txt');
+// let { i: pose_line, content: poses_data } = parse_poses('../data/poses_0_52.txt');
 // load shadow texture & create shadow geometry and material
 const loader = new THREE.TextureLoader();
-const shadowTexture = loader.load('./roundshadow.png'); // load the fake shadow texture
+const shadowTexture = loader.load('./img/roundshadow.png'); // load the fake shadow texture
 const planeSize = 1;
 const shadowGeo = new THREE.PlaneBufferGeometry(planeSize, planeSize);
 
+STORED_SHAPE_PAD.init_stored_shape();
+let web_worker = create_web_worker();
+web_worker.postMessage({ MessagePurpose: "SetUp" });
 init();
 create_GUI();
 // =================================================================
+
+// 创建web worker
+function create_web_worker() {
+    let web_worker = new Worker("../js/webWorker.js", { name: "mainWorker" });
+    web_worker.onerror = function (evt) { console.log(`Error from Web Worker: ${evt.message}`); }
+    web_worker.onmessage = web_worker_receive_msg;
+    return web_worker;
+}
+
+// web worker消息处理
+function web_worker_receive_msg(evt) {
+    let obj = evt.data;
+    if (obj.cmd === "ready") { // main logic
+        console.log("ready!")
+        web_worker.postMessage({ MessagePurpose: "getAgentNum", width: grid_w, height: grid_h });
+        web_worker.postMessage({ MessagePurpose: "getPoseData", width: grid_w, height: grid_h });
+    } else if (obj.cmd === "poseData") {
+        console.log("termi:", obj.step);
+        poses_data.push(obj.data);
+        total_step = poses_data.length;
+        if (obj.step == 2) {
+            gotPoseData = true;
+            sphere_generate();
+        }
+    } else if (obj.cmd === "agentNum") {
+        agents_num = obj.data;
+        if (!gotAgentNum) gotAgentNum = true;
+    }
+}
 
 // create config pad
 function create_GUI() {
@@ -103,6 +141,7 @@ function create_GUI() {
     animation.add(params.show_grid, "ShowGrid").name('Show Grid');
     custom_folder.add(params, 'custom_pad').name('Draw a shape');
     custom_folder.add(params, 'image_upload_pad').name('Upload a pic')
+    gui.add(params, "stored_shape_pad").name("Select a shape");
 }
 
 // compute the shape of pattern to draw the outline
@@ -233,7 +272,7 @@ function cube_generate() {
     for (let i = 0; i < agents_num; i++) {
         let geometry = new THREE.BoxGeometry(0.9, 0.9, 1);
         let cube = new THREE.Mesh(geometry, material);
-        let [x, y] = poses_data[2][i];
+        let x = poses_data[0][2 * i], y = poses_data[0][2 * i + 1];
         cube.position.y = y - grid_h / 2 + 0.5;
         cube.position.x = x - grid_w / 2 + 0.5;
         cube.position.z = 0.5;
@@ -257,7 +296,7 @@ function sphere_generate() {
         // create shpere
         let geometry = new THREE.SphereBufferGeometry(sphere_r, 32, 32);
         let sphere = new THREE.Mesh(geometry, material);
-        let [x, y] = poses_data[2][i];
+        let x = poses_data[0][2 * i], y = poses_data[0][2 * i + 1];
         sphere.position.z = sphere_r;
         base.add(sphere);
 
@@ -286,13 +325,10 @@ function sphere_generate() {
     }
 }
 //===============================================================
-
 function init() {
     // load data
-    agents_num = poses_data[0][3];
-    grid_w = grid_line, grid_h = grid_line;
-    total_step = (pose_line - 1) / 2;
-    console.assert(typeof total_step === 'number' && total_step % 1 === 0);
+    // total_step = (pose_line - 1) / 2;
+    // console.assert(typeof total_step === 'number' && total_step % 1 === 0);
 
     // highlight the outline
     outline_grid();
@@ -345,7 +381,7 @@ function init() {
     scene.add(grid);
 
     // create agents
-    sphere_generate();
+    // sphere_generate();
 
     // a plane to show the grid pattern
     let geometry = new THREE.PlaneGeometry(grid_line, grid_line, grid_line, grid_line);
@@ -392,7 +428,7 @@ function init() {
 function reset() {
     mov_para.step = 0;
     for (let i = 0; i < agents_num; i++) {
-        let [x, y] = poses_data[2][i];
+        let x = poses_data[0][2 * i], y = poses_data[0][2 * i + 1];
         objects[i].position.y = y - grid_h / 2 + 0.5;
         objects[i].position.x = x - grid_w / 2 + 0.5;
         objects[i].position.z = ori_height;
@@ -405,7 +441,7 @@ function reset() {
 function reset_group() {
     mov_para.step = 0;
     for (let i = 0; i < agents_num; i++) {
-        let [x, y] = poses_data[2][i];
+        let x = poses_data[0][2 * i], y = poses_data[0][2 * i + 1];
         groups[i].position.y = y - grid_h / 2 + 0.5;
         groups[i].position.x = x - grid_w / 2 + 0.5;
         objects[i].position.z = ori_height;
@@ -446,8 +482,8 @@ function agent_move_cube() {
     }
 
     for (let i = 0; i < agents_num; i++) {
-        mov_para.dirX = poses_data[mov_para.step * 2 + 4][i][0] - poses_data[mov_para.step * 2 + 2][i][0];
-        mov_para.dirY = poses_data[mov_para.step * 2 + 4][i][1] - poses_data[mov_para.step * 2 + 2][i][1];
+        mov_para.dirX = poses_data[mov_para.step + 1][2 * i] - poses_data[mov_para.step][2 * i];
+        mov_para.dirY = poses_data[mov_para.step + 1][2 * i + 1] - poses_data[mov_para.step][2 * i + 1];
         objects[i].position.x += mov_para.dirX * per_mov;
         objects[i].position.y += mov_para.dirY * per_mov;
     }
@@ -467,8 +503,8 @@ function agent_move_sphere() {
     }
 
     for (let i = 0; i < agents_num; i++) {
-        mov_para.dirX = poses_data[mov_para.step * 2 + 4][i][0] - poses_data[mov_para.step * 2 + 2][i][0];
-        mov_para.dirY = poses_data[mov_para.step * 2 + 4][i][1] - poses_data[mov_para.step * 2 + 2][i][1];
+        mov_para.dirX = poses_data[mov_para.step + 1][2 * i] - poses_data[mov_para.step][2 * i];
+        mov_para.dirY = poses_data[mov_para.step + 1][2 * i + 1] - poses_data[mov_para.step][2 * i + 1];
         groups[i].position.x += mov_para.dirX * per_mov;
         groups[i].position.y += mov_para.dirY * per_mov;
         if (mov_para.dirX || mov_para.dirY) {
@@ -483,9 +519,15 @@ function agent_move_sphere() {
     }
 }
 
+let done = false;
 let animate = function () {
     requestAnimationFrame(animate);
 
+    if (!done) {
+        console.log(poses_data);
+        if (poses_data.length >= 2) done = true;
+        return;
+    }
     // update the speed of agents
     if (mov_para.frame === 0) {
         fp_mov = (13 - params.speed) * 10;
