@@ -115,8 +115,11 @@ function web_worker_receive_msg(evt) {
     let obj = evt.data;
     if (obj.cmd === "ready") { // main logic
         console.log("ready!")
-        web_worker.postMessage({ MessagePurpose: "getAgentNum", width: grid_w, height: grid_h });
-        web_worker.postMessage({ MessagePurpose: "getPoseData", width: grid_w, height: grid_h });
+        // web_worker.postMessage({ MessagePurpose: "getAgentNum", width: grid_w, height: grid_h });
+        web_worker.postMessage({
+            MessagePurpose: "getPoseData", width: grid_w, height: grid_h, shape_num: shape_config.shape_num,
+            agent_num: shape_config.agent_num, grid_data: grid_data
+        });
     } else if (obj.cmd === "poseData") {
         console.log("termi:", obj.step);
         poses_data.push(obj.data);
@@ -125,9 +128,6 @@ function web_worker_receive_msg(evt) {
             gotPoseData = true;
             sphere_generate();
         }
-    } else if (obj.cmd === "agentNum") {
-        agents_num = obj.data;
-        if (!gotAgentNum) gotAgentNum = true;
     }
 }
 
@@ -287,7 +287,7 @@ function cube_generate() {
         shininess: 5,
         specular: 0xdb504b
     });
-    for (let i = 0; i < agents_num; i++) {
+    for (let i = 0; i < shape_config.agent_num; i++) {
         let geometry = new THREE.BoxGeometry(0.9, 0.9, 1);
         let cube = new THREE.Mesh(geometry, material);
         let x = poses_data[0][2 * i], y = poses_data[0][2 * i + 1];
@@ -306,7 +306,7 @@ function sphere_generate() {
         polygonOffsetUnits: 2,
     });
 
-    for (let i = 0; i < agents_num; i++) {
+    for (let i = 0; i < shape_config.agent_num; i++) {
         // create group for the integrity of sphere and shadow
         let base = new THREE.Object3D(); // sphere & shadow
         scene.add(base);
@@ -350,8 +350,6 @@ function init() {
 
     // highlight the outline
     outline_grid();
-    console.log(horizon_line);
-    console.log(vertical_line);
     build_outline_wall();
 
     scene.background = new THREE.Color(0xe0e0e0);
@@ -442,7 +440,6 @@ function create_plane() {
     }); // target material
     mats.push(material);
     plane = new THREE.Mesh(geometry, mats);
-    console.log(geometry);
     for (let i = 0; i < geometry.faces.length; i++) {
         let _i = Math.floor(i / 2);
         let row = Math.floor(_i / grid_h), col = _i % grid_w;
@@ -454,7 +451,6 @@ function create_plane() {
     }
     scene.add(plane);
     geometry = new THREE.PlaneBufferGeometry(shape_config.grid_h, shape_config.grid_h, shape_config.grid_w, shape_config.grid_w);
-    console.log(geometry);
 }
 
 // 重置grid场景，重置shape
@@ -469,7 +465,7 @@ function reset_shape() {
 // 重置agent（cube）
 function reset() {
     mov_para.step = 0;
-    for (let i = 0; i < agents_num; i++) {
+    for (let i = 0; i < shape_config.agent_num; i++) {
         let x = poses_data[0][2 * i], y = poses_data[0][2 * i + 1];
         objects[i].position.y = y - grid_h / 2 + 0.5;
         objects[i].position.x = x - grid_w / 2 + 0.5;
@@ -483,7 +479,7 @@ function reset() {
 // 重置agent位置（sphere）
 function reset_group() {
     mov_para.step = 0;
-    for (let i = 0; i < agents_num; i++) {
+    for (let i = 0; i < shape_config.agent_num; i++) {
         let x = poses_data[0][2 * i], y = poses_data[0][2 * i + 1];
         groups[i].position.y = y - grid_h / 2 + 0.5;
         groups[i].position.x = x - grid_w / 2 + 0.5;
@@ -525,7 +521,7 @@ function agent_move_cube() {
         return;
     }
 
-    for (let i = 0; i < agents_num; i++) {
+    for (let i = 0; i < shape_config.agent_num; i++) {
         mov_para.dirX = poses_data[mov_para.step + 1][2 * i] - poses_data[mov_para.step][2 * i];
         mov_para.dirY = poses_data[mov_para.step + 1][2 * i + 1] - poses_data[mov_para.step][2 * i + 1];
         objects[i].position.x += mov_para.dirX * per_mov;
@@ -546,7 +542,7 @@ function agent_move_sphere() {
         return;
     }
 
-    for (let i = 0; i < agents_num; i++) {
+    for (let i = 0; i < shape_config.agent_num; i++) {
         mov_para.dirX = poses_data[mov_para.step + 1][2 * i] - poses_data[mov_para.step][2 * i];
         mov_para.dirY = poses_data[mov_para.step + 1][2 * i + 1] - poses_data[mov_para.step][2 * i + 1];
         groups[i].position.x += mov_para.dirX * per_mov;
