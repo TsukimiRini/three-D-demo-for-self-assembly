@@ -3,24 +3,9 @@
 import * as THREE from '../three.js-master/build/three.module.js';
 import { OrbitControls } from '../three.js-master/examples/jsm/controls/OrbitControls.js';
 import { GUI } from '../three.js-master/examples/jsm/libs/dat.gui.module.js';
-import { parse_grid, parse_poses } from '../js/parse-module.js';
+import { parse_grid, parse_file_name } from '../js/parse-module.js';
 import * as CUSTOM_PAD from '../js/custom_module.js';
 import * as STORED_SHAPE_PAD from '../js/stored_shape_module.js';
-
-// test wasm
-// async function fetchAndInstantiate() {
-//     const response = await fetch("hello.wasm");
-//     const buffer = await response.arrayBuffer();
-//     const obj = await WebAssembly.instantiate(buffer, undefined);
-//     console.log(obj.instance.exports.hello());  // "3"
-// }
-// fetchAndInstantiate();
-// WebAssembly.instantiateStreaming(fetch('hello.wasm'))
-//       .then(obj => {
-//         var tbl = obj.instance.exports.hello;
-//         console.log(hello());  // 13
-//       });
-// Module.onRuntimeInitialized = () => { web_worker.postMessage({"MessagePurpose":"getAgentNum"}); }
 
 // ======================parameter===============================
 // config
@@ -40,6 +25,15 @@ let sphere_r = 0.45;
 let ori_height = 0.5;
 let outline_h = 1;
 
+// shape parameter
+let shape_config = {
+    grid_w: 16,
+    grid_h: 16,
+    shape_num: 2,
+    agent_num: 43,
+    file_path: '../data/grid_2_43.txt'
+}
+
 let params = {
     speed: 13 - fp_mov / 10,
     agent_type: agent_types[agent_id],
@@ -54,6 +48,7 @@ let params = {
     custom_pad: CUSTOM_PAD.popup_custom_pad,
     image_upload_pad: CUSTOM_PAD.show_image_upload_popup,
     stored_shape_pad: STORED_SHAPE_PAD.popup_stored_shape,
+    test: create_grid
 }
 
 // global
@@ -61,19 +56,21 @@ let scene = new THREE.Scene();
 let renderer = new THREE.WebGLRenderer();
 let controls = null;
 let grid = null;
+let plane = null;
 let camera = null;
 
 let agents_num = 0;
 let total_step = 0; // steps of iteration
-let grid_w = 16, grid_h = 16; // size of grid
 let horizon_line = [], vertical_line = [];
 
 let objects = [];
 let shadows = [];
 let groups = [];
+let walls = [];
 
 let poses_data = [];// poses_data[i][2*r]:x of agent r in i-th step
 
+// 3d场景离页面边缘距离
 let window_margin = 50;
 
 let gotPoseData = false, gotAgentNum = false;
@@ -84,7 +81,8 @@ window.addEventListener("load", function () {
     CUSTOM_PAD.init_custom_pad();
 });
 // load data
-let { i: grid_line, content: grid_data } = parse_grid('../data/grid_2_43.txt');
+let { grid_w, grid_h, content: grid_data, shape_num, a_num } = parse_grid(shape_config.file_path);
+init_shape_data();
 // let { i: pose_line, content: poses_data } = parse_poses('../data/poses_0_52.txt');
 // load shadow texture & create shadow geometry and material
 const loader = new THREE.TextureLoader();
@@ -98,6 +96,11 @@ web_worker.postMessage({ MessagePurpose: "SetUp" });
 init();
 create_GUI();
 // =================================================================
+function init_shape_data() {
+    shape_config.grid_w = grid_w, shape_config.grid_h = grid_h;
+    shape_config.shape_num = shape_num;
+    shape_config.agent_num = a_num;
+}
 
 // 创建web worker
 function create_web_worker() {
@@ -118,7 +121,7 @@ function web_worker_receive_msg(evt) {
         console.log("termi:", obj.step);
         poses_data.push(obj.data);
         total_step = poses_data.length;
-        if (obj.step == 2) {
+        if (obj.step == 1) {
             gotPoseData = true;
             sphere_generate();
         }
@@ -142,10 +145,18 @@ function create_GUI() {
     custom_folder.add(params, 'custom_pad').name('Draw a shape');
     custom_folder.add(params, 'image_upload_pad').name('Upload a pic')
     gui.add(params, "stored_shape_pad").name("Select a shape");
+    gui.add(params, "test");
 }
 
 // compute the shape of pattern to draw the outline
 function outline_grid() {
+    // 清除旧数据，保证可复用性
+    for (let obj of horizon_line)
+        scene.remove(obj);
+    for (let obj of vertical_line)
+        scene.remove(obj);
+    horizon_line.length = 0, vertical_line.length = 0;
+
     let last_up = -1, last_down = -1, start_node = -1, cur_node = -1, cur_up = -1, cur_down = -1;
     for (let i = 1; i < grid_h; i++) {
         for (let j = 0; j < grid_w; j++) {
@@ -185,6 +196,11 @@ function outline_grid() {
 
 // add the outline to the scene
 function build_outline_wall() {
+    // 清除之前渲染的墙壁
+    for (let obj in walls)
+        scene.remove(obj);
+    walls.length = 0;
+
     let vShader = `
         varying vec2 vUv;
 
@@ -231,6 +247,7 @@ function build_outline_wall() {
         mesh.position.y = row;
         mesh.position.z = outline_h / 2;
         mesh.rotateX(Math.PI / 2);
+        walls.push(mesh);
         scene.add(mesh);
     }
     let materialX = new THREE.ShaderMaterial({
@@ -255,6 +272,7 @@ function build_outline_wall() {
         mesh.position.x = col;
         mesh.position.z = outline_h / 2;
         mesh.rotateY(Math.PI / 2);
+        walls.push(mesh);
         scene.add(mesh);
     }
 }
@@ -371,43 +389,13 @@ function init() {
     }
 
     // grid
-    grid = new THREE.GridHelper(grid_line, grid_line, 0xD5D5E0, 0xD5D5E0);
-    grid.material.opacity = 1;
-    grid.material.transparent = true;
-    grid.material.polygonOffset = true;
-    grid.material.polygonOffsetFactor = -0.1;
-    grid.material.polygonOffsetUnits = -2;
-    grid.rotateX(Math.PI / 2);
-    scene.add(grid);
+    create_grid();
 
     // create agents
     // sphere_generate();
 
     // a plane to show the grid pattern
-    let geometry = new THREE.PlaneGeometry(grid_line, grid_line, grid_line, grid_line);
-    let mats = [];
-    let material = new THREE.MeshBasicMaterial({
-        color: 0xC0CDCF, side: THREE.DoubleSide
-    }); // plane material
-    mats.push(material);
-    material = new THREE.MeshBasicMaterial({
-        color: 0xEEE0CB, side: THREE.DoubleSide
-    }); // target material
-    mats.push(material);
-    let plane = new THREE.Mesh(geometry, mats);
-    console.log(geometry);
-    for (let i = 0; i < geometry.faces.length; i++) {
-        let _i = Math.floor(i / 2);
-        let row = Math.floor(_i / grid_h), col = _i % grid_w;
-        if (grid_data[row][col] == 0)
-            geometry.faces[i].materialIndex = 0;
-        else {
-            geometry.faces[i].materialIndex = 1;
-        }
-    }
-    scene.add(plane);
-    geometry = new THREE.PlaneBufferGeometry(grid_line, grid_line, grid_line, grid_line);
-    console.log(geometry);
+    create_plane();
 
     // axis
     // var axesHelper = new THREE.AxesHelper(grid_line);
@@ -425,6 +413,60 @@ function init() {
     };
 }
 
+// 创建grid
+function create_grid() {
+    if (grid)
+        scene.remove(grid);
+    grid = new THREE.GridHelper(shape_config.grid_w, shape_config.grid_w, 0xD5D5E0, 0xD5D5E0);
+    grid.material.opacity = 1;
+    grid.material.transparent = true;
+    grid.material.polygonOffset = true;
+    grid.material.polygonOffsetFactor = -0.1;
+    grid.material.polygonOffsetUnits = -2;
+    grid.rotateX(Math.PI / 2);
+    scene.add(grid);
+}
+
+// 创建plane
+function create_plane() {
+    if (plane)
+        scene.remove(plane);
+    let geometry = new THREE.PlaneGeometry(shape_config.grid_h, shape_config.grid_h, shape_config.grid_w, shape_config.grid_w);
+    let mats = [];
+    let material = new THREE.MeshBasicMaterial({
+        color: 0xC0CDCF, side: THREE.DoubleSide
+    }); // plane material
+    mats.push(material);
+    material = new THREE.MeshBasicMaterial({
+        color: 0xEEE0CB, side: THREE.DoubleSide
+    }); // target material
+    mats.push(material);
+    plane = new THREE.Mesh(geometry, mats);
+    console.log(geometry);
+    for (let i = 0; i < geometry.faces.length; i++) {
+        let _i = Math.floor(i / 2);
+        let row = Math.floor(_i / grid_h), col = _i % grid_w;
+        if (grid_data[row][col] == 0)
+            geometry.faces[i].materialIndex = 0;
+        else {
+            geometry.faces[i].materialIndex = 1;
+        }
+    }
+    scene.add(plane);
+    geometry = new THREE.PlaneBufferGeometry(shape_config.grid_h, shape_config.grid_h, shape_config.grid_w, shape_config.grid_w);
+    console.log(geometry);
+}
+
+// 重置grid场景，重置shape
+function reset_shape() {
+    create_grid();
+    create_plane();
+    outline_grid();
+    build_outline_wall();
+    repaint_agent();
+}
+
+// 重置agent（cube）
 function reset() {
     mov_para.step = 0;
     for (let i = 0; i < agents_num; i++) {
@@ -438,6 +480,7 @@ function reset() {
     mov_para.frame = 0;
 }
 
+// 重置agent位置（sphere）
 function reset_group() {
     mov_para.step = 0;
     for (let i = 0; i < agents_num; i++) {
@@ -451,6 +494,7 @@ function reset_group() {
     mov_para.frame = 0;
 }
 
+// 清除所有agent（切换agent模型使用）
 function clear_agents() {
     if (groups.length) {
         for (let group of groups)
@@ -519,12 +563,23 @@ function agent_move_sphere() {
     }
 }
 
+function repaint_agent() {
+    clear_agents();
+    agent_id = agent_types.indexOf(params.agent_type);
+    if (params.agent_type === 'cube') {
+        cube_generate();
+        reset();
+    } else if (params.agent_type === 'sphere') {
+        sphere_generate();
+        reset_group();
+    }
+}
+
 let done = false;
 let animate = function () {
     requestAnimationFrame(animate);
 
     if (!done) {
-        console.log(poses_data);
         if (poses_data.length >= 2) done = true;
         return;
     }
@@ -534,15 +589,7 @@ let animate = function () {
         per_mov = 1 / fp_mov;
     }
     if (params.agent_type !== agent_types[agent_id]) {
-        clear_agents();
-        agent_id = agent_types.indexOf(params.agent_type);
-        if (params.agent_type === 'cube') {
-            cube_generate();
-            reset();
-        } else if (params.agent_type === 'sphere') {
-            sphere_generate();
-            reset_group();
-        }
+        repaint_agent();
     }
     if (agent_types[agent_id] === 'cube')
         agent_move_cube();

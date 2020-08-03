@@ -34,6 +34,15 @@ function init_custom_pad() {
     let shape_selector = document.getElementById("shape_selector");
     // 用户更改grid的规模时改变形状选择中生成的图示。
     width_ipt.onchange = height_ipt.onchange = function () {
+        if (width_ipt.value >= 40) {
+            width_ipt.value = 40;
+        }
+        if (height_ipt.value >= 40) {
+            height_ipt.value = 40;
+        }
+        if (this.value === this.oldVal) {
+            return;
+        }
         // 删除所有之前生成的正方形元素
         while (shape_selector.hasChildNodes()) {
             shape_selector.removeChild(shape_selector.firstChild);
@@ -63,6 +72,9 @@ function init_custom_pad() {
             }
             shape_selector.appendChild(tr);
         }
+
+        // 存储旧值
+        this.oldVal = this.value;
     }
 
     // 实现形状选择界面
@@ -85,6 +97,7 @@ function init_custom_pad() {
         hide_custom_shape_popup();
     }
     document.getElementById("reset").onclick = function () {
+        width_ipt.oldVal = undefined;
         width_ipt.onchange();
     }
     document.getElementById("cancel").onclick = function () {
