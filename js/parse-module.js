@@ -16,8 +16,6 @@ function parse_grid(file_path) {
     }
     let { shape_num, a_num } = parse_file_name(file_path);
     let grid_w = content[0].length, grid_h = content.length;
-    console.log("shape_num:", shape_num);
-    console.log("a_num", a_num);
     return { grid_w, grid_h, content, shape_num, a_num };
 }
 
@@ -26,7 +24,6 @@ function parse_file_name(file_name) {
     let para_name = name[name.length - 2].split("_");
     let shape_num = parseInt(para_name[para_name.length - 2]);
     let a_num = parseInt(para_name[para_name.length - 1]);
-    console.log(para_name);
     return {
         shape_num, a_num
     };

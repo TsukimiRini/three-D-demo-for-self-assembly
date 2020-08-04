@@ -25,13 +25,15 @@ let sphere_r = 0.45;
 let ori_height = 0.5;
 let outline_h = 1;
 
+let custom_shape_id = 10;
+
 // shape parameter
 let shape_config = {
-    grid_w: 16,
-    grid_h: 16,
-    shape_num: 2,
-    agent_num: 43,
-    file_path: '../data/grid_2_43.txt'
+    grid_w: null,
+    grid_h: null,
+    shape_num: null,
+    agent_num: null,
+    file_path: '../data/grid_1_131.txt'
 }
 
 let params = {
@@ -117,16 +119,16 @@ function web_worker_receive_msg(evt) {
         console.log("ready!")
         // web_worker.postMessage({ MessagePurpose: "getAgentNum", width: grid_w, height: grid_h });
         web_worker.postMessage({
-            MessagePurpose: "getPoseData", width: grid_w, height: grid_h, shape_num: shape_config.shape_num,
+            MessagePurpose: "getPoseData", width: shape_config.grid_w, height: shape_config.grid_h, shape_num: shape_config.shape_num,
             agent_num: shape_config.agent_num, grid_data: grid_data
         });
     } else if (obj.cmd === "poseData") {
         console.log("termi:", obj.step);
         poses_data.push(obj.data);
+        console.log(poses_data);
         total_step = poses_data.length;
-        if (obj.step == 1) {
-            gotPoseData = true;
-            sphere_generate();
+        if (obj.step === 1) {
+            reset_shape();
         }
     }
 }
@@ -151,15 +153,15 @@ function create_GUI() {
 // compute the shape of pattern to draw the outline
 function outline_grid() {
     // 清除旧数据，保证可复用性
-    for (let obj of horizon_line)
-        scene.remove(obj);
-    for (let obj of vertical_line)
-        scene.remove(obj);
+    // for (let obj of horizon_line)
+    //     scene.remove(obj);
+    // for (let obj of vertical_line)
+    //     scene.remove(obj);
     horizon_line.length = 0, vertical_line.length = 0;
 
     let last_up = -1, last_down = -1, start_node = -1, cur_node = -1, cur_up = -1, cur_down = -1;
-    for (let i = 1; i < grid_h; i++) {
-        for (let j = 0; j < grid_w; j++) {
+    for (let i = 1; i < shape_config.grid_h; i++) {
+        for (let j = 0; j < shape_config.grid_w; j++) {
             cur_up = grid_data[i - 1][j], cur_down = grid_data[i][j];
             if (cur_up === last_up && cur_down === last_down) {
                 cur_node = j + 1;
@@ -175,8 +177,8 @@ function outline_grid() {
         }
         last_up = -1, last_down = -1, start_node = -1, cur_node = -1;
     }
-    for (let i = 1; i < grid_w; i++) {
-        for (let j = 0; j < grid_h; j++) {
+    for (let i = 1; i < shape_config.grid_w; i++) {
+        for (let j = 0; j < shape_config.grid_h; j++) {
             cur_up = grid_data[j][i - 1], cur_down = grid_data[j][i];
             if (cur_up === last_up && cur_down === last_down) {
                 cur_node = j + 1;
@@ -197,7 +199,7 @@ function outline_grid() {
 // add the outline to the scene
 function build_outline_wall() {
     // 清除之前渲染的墙壁
-    for (let obj in walls)
+    for (let obj of walls)
         scene.remove(obj);
     walls.length = 0;
 
@@ -240,7 +242,7 @@ function build_outline_wall() {
         side: THREE.DoubleSide
     });
     for (let line of horizon_line) {
-        let row = grid_h / 2 - line[0], start_node = line[1] - grid_w / 2, end_node = line[2] - grid_w / 2;
+        let row = shape_config.grid_h / 2 - line[0], start_node = line[1] - shape_config.grid_w / 2, end_node = line[2] - shape_config.grid_w / 2;
         let geometry = new THREE.PlaneGeometry(end_node - start_node, outline_h);
         let mesh = new THREE.Mesh(geometry, materialY);
         mesh.position.x = (start_node + end_node) / 2;
@@ -265,7 +267,7 @@ function build_outline_wall() {
         side: THREE.DoubleSide
     });
     for (let line of vertical_line) {
-        let col = line[0] - grid_w / 2, end_node = grid_w / 2 - line[1], start_node = grid_w / 2 - line[2];
+        let col = line[0] - shape_config.grid_w / 2, end_node = shape_config.grid_w / 2 - line[1], start_node = shape_config.grid_w / 2 - line[2];
         let geometry = new THREE.PlaneGeometry(outline_h, end_node - start_node);
         let mesh = new THREE.Mesh(geometry, materialX);
         mesh.position.y = (start_node + end_node) / 2;
@@ -291,12 +293,18 @@ function cube_generate() {
         let geometry = new THREE.BoxGeometry(0.9, 0.9, 1);
         let cube = new THREE.Mesh(geometry, material);
         let x = poses_data[0][2 * i], y = poses_data[0][2 * i + 1];
-        cube.position.y = y - grid_h / 2 + 0.5;
-        cube.position.x = x - grid_w / 2 + 0.5;
+        cube.position.y = y - shape_config.grid_h / 2 + 0.5;
+        cube.position.x = x - shape_config.grid_w / 2 + 0.5;
         cube.position.z = 0.5;
         scene.add(cube);
         objects.push(cube);
     }
+
+    // 参数重置
+    mov_para.step = 0;
+    mov_para.dirX = 0;
+    mov_para.dirY = 0;
+    mov_para.frame = 0;
 }
 
 function sphere_generate() {
@@ -333,14 +341,20 @@ function sphere_generate() {
         base.add(shadowMesh);
 
         // set the location of the integrity
-        base.position.y = y - grid_h / 2 + 0.5;
-        base.position.x = x - grid_w / 2 + 0.5;
+        base.position.y = y - shape_config.grid_h / 2 + 0.5;
+        base.position.x = x - shape_config.grid_w / 2 + 0.5;
 
         // remember the integrity of sphere and shadow
         groups.push(base);
         shadows.push(shadowMesh);
         objects.push(sphere);
     }
+
+    // 参数重置
+    mov_para.step = 0;
+    mov_para.dirX = 0;
+    mov_para.dirY = 0;
+    mov_para.frame = 0;
 }
 //===============================================================
 function init() {
@@ -396,8 +410,8 @@ function init() {
     create_plane();
 
     // axis
-    // var axesHelper = new THREE.AxesHelper(grid_line);
-    // scene.add(axesHelper);
+    var axesHelper = new THREE.AxesHelper(shape_config.grid_w);
+    scene.add(axesHelper);
 
     camera.position.z = 60;
 
@@ -413,8 +427,9 @@ function init() {
 
 // 创建grid
 function create_grid() {
-    if (grid)
+    if (grid) {
         scene.remove(grid);
+    }
     grid = new THREE.GridHelper(shape_config.grid_w, shape_config.grid_w, 0xD5D5E0, 0xD5D5E0);
     grid.material.opacity = 1;
     grid.material.transparent = true;
@@ -427,8 +442,9 @@ function create_grid() {
 
 // 创建plane
 function create_plane() {
-    if (plane)
+    if (plane) {
         scene.remove(plane);
+    }
     let geometry = new THREE.PlaneGeometry(shape_config.grid_h, shape_config.grid_h, shape_config.grid_w, shape_config.grid_w);
     let mats = [];
     let material = new THREE.MeshBasicMaterial({
@@ -442,7 +458,7 @@ function create_plane() {
     plane = new THREE.Mesh(geometry, mats);
     for (let i = 0; i < geometry.faces.length; i++) {
         let _i = Math.floor(i / 2);
-        let row = Math.floor(_i / grid_h), col = _i % grid_w;
+        let row = Math.floor(_i / shape_config.grid_h), col = _i % shape_config.grid_w;
         if (grid_data[row][col] == 0)
             geometry.faces[i].materialIndex = 0;
         else {
@@ -467,8 +483,8 @@ function reset() {
     mov_para.step = 0;
     for (let i = 0; i < shape_config.agent_num; i++) {
         let x = poses_data[0][2 * i], y = poses_data[0][2 * i + 1];
-        objects[i].position.y = y - grid_h / 2 + 0.5;
-        objects[i].position.x = x - grid_w / 2 + 0.5;
+        objects[i].position.y = y - shape_config.grid_h / 2 + 0.5;
+        objects[i].position.x = x - shape_config.grid_w / 2 + 0.5;
         objects[i].position.z = ori_height;
     }
     mov_para.dirX = 0;
@@ -481,8 +497,8 @@ function reset_group() {
     mov_para.step = 0;
     for (let i = 0; i < shape_config.agent_num; i++) {
         let x = poses_data[0][2 * i], y = poses_data[0][2 * i + 1];
-        groups[i].position.y = y - grid_h / 2 + 0.5;
-        groups[i].position.x = x - grid_w / 2 + 0.5;
+        groups[i].position.y = y - shape_config.grid_h / 2 + 0.5;
+        groups[i].position.x = x - shape_config.grid_w / 2 + 0.5;
         objects[i].position.z = ori_height;
     }
     mov_para.dirX = 0;
@@ -564,10 +580,8 @@ function repaint_agent() {
     agent_id = agent_types.indexOf(params.agent_type);
     if (params.agent_type === 'cube') {
         cube_generate();
-        reset();
     } else if (params.agent_type === 'sphere') {
         sphere_generate();
-        reset_group();
     }
 }
 
@@ -597,3 +611,27 @@ let animate = function () {
 };
 
 animate();
+
+function arrTrans(num, arr) {
+    const newArr = [];
+    while (arr.length > 0) {
+        newArr.push(arr.splice(0, num));
+    }
+    return newArr;
+}
+
+// 自定义面板按钮事件
+document.getElementById("apply").addEventListener("click", function () {
+    grid_data = arrTrans(CUSTOM_PAD.width, CUSTOM_PAD.new_shape_data);
+    shape_config.grid_w = CUSTOM_PAD.width, shape_config.grid_h = CUSTOM_PAD.height;
+    shape_config.shape_num = custom_shape_id;
+    shape_config.agent_num = CUSTOM_PAD.agent_num;
+    poses_data.length = 0;
+    done = false;
+    console.log(grid_data)
+    web_worker.postMessage({
+        MessagePurpose: "getPoseData", width: shape_config.grid_w, height: shape_config.grid_h, shape_num: shape_config.shape_num,
+        agent_num: shape_config.agent_num, grid_data: grid_data
+    });
+    CUSTOM_PAD.hide_custom_shape_popup();
+})

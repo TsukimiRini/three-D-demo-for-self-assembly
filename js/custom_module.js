@@ -9,6 +9,7 @@ let gap = 0.3;
 let first_time = true;
 let shape_data = [];
 let new_shape_data = [];
+let agent_num = 0;
 
 function init_custom_pad() {
     // 设置右上角叉叉关闭窗口功能
@@ -48,6 +49,7 @@ function init_custom_pad() {
             shape_selector.removeChild(shape_selector.firstChild);
         }
         new_shape_data.length = 0;
+        agent_num = 0;
 
         // 计算生成正方形的边长。
         let total_wid = document.getElementsByClassName("custom_row")[0].offsetWidth;
@@ -79,23 +81,23 @@ function init_custom_pad() {
 
     // 实现形状选择界面
     shape_selector.addEventListener("click", function (e) {
-        console.log("clicked");
-        console.log(e.target.className);
         if (e.target.className == "square_notClicked") {
             e.target.className = "square_Clicked";
             new_shape_data[parseInt(e.target.id)] = 1;
+            agent_num++;
         } else if (e.target.className == "square_Clicked") {
             e.target.className = "square_notClicked";
             new_shape_data[parseInt(e.target.id)] = 0;
+            agent_num--;
         }
     })
 
     // 自定义形状按钮逻辑
-    document.getElementById("apply").onclick = function () {
-        shape_data = new_shape_data;
-        console.log(shape_data);
-        hide_custom_shape_popup();
-    }
+    // document.getElementById("apply").onclick = function () {
+    //     shape_data = new_shape_data;
+    //     console.log(shape_data);
+    //     hide_custom_shape_popup();
+    // }
     document.getElementById("reset").onclick = function () {
         width_ipt.oldVal = undefined;
         width_ipt.onchange();
@@ -140,4 +142,4 @@ function hide_image_upload_popup() {
     image_upload_pad.style.display = 'none';
 }
 
-export { init_custom_pad, popup_custom_pad, show_image_upload_popup };
+export { init_custom_pad, popup_custom_pad, show_image_upload_popup,hide_custom_shape_popup,new_shape_data,width,height,agent_num };
