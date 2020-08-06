@@ -30,6 +30,7 @@ function parse_file_name(file_name) {
 }
 
 function parse_poses(file_path) {
+    console.log(file_path);
     let xhr = new XMLHttpRequest(),
         okStatus = document.location.protocol === "file:" ? 0 : 200;
     xhr.open('GET', file_path, false);
@@ -40,18 +41,21 @@ function parse_poses(file_path) {
     }
     let content = xhr.responseText.replace(/(\n[\s\t]*\r*\n)/g, '\n').replace(/^[\n\r\n\t]*|[\n\r\n\t]*$/g, '');
     content = content.split(/\n/);
-    let i = 0;
-    for (let v of content) {
-        content[i] = v.split(' ');
-        if (i >= 2) {
-            for (let j in content[i]) {
-                let t = content[i][j];
-                content[i][j] = t.split(',');
-            }
+
+    let res = []
+    for (let i = 2; i < content.length; i += 2) {
+        content[i] = content[i].split(' ');
+        res.push([])
+        for (let j in content[i]) {
+            let t = content[i][j];
+            let xy = t.split(',');
+            res[i / 2 - 1].push(xy[0]);
+            res[i / 2 - 1].push(xy[1]);
         }
-        i++;
     }
-    return { i, content };
+    let len = res.length;
+    console.log(res);
+    return { len, res };
 }
 
 export { parse_grid, parse_poses, parse_file_name };

@@ -65,6 +65,7 @@ if (self.name === 'mainWorker') {
                 }
                 self.postMessage({ cmd: "poseData", data: out_poses, step: termi - 1 });
             }
+            self.postMessage({ cmd: "done" });
         }
     }
 }

@@ -3,9 +3,10 @@
 import * as THREE from '../three.js-master/build/three.module.js';
 import { OrbitControls } from '../three.js-master/examples/jsm/controls/OrbitControls.js';
 import { GUI } from '../three.js-master/examples/jsm/libs/dat.gui.module.js';
-import { parse_grid, parse_file_name } from '../js/parse-module.js';
+import { parse_grid, parse_file_name, parse_poses } from '../js/parse-module.js';
 import * as CUSTOM_PAD from '../js/custom_module.js';
 import * as STORED_SHAPE_PAD from '../js/stored_shape_module.js';
+import { stored_para } from "../js/shape_para.js";
 
 // ======================parameter===============================
 // config
@@ -33,7 +34,7 @@ let shape_config = {
     grid_h: null,
     shape_num: null,
     agent_num: null,
-    file_path: '../data/grid_1_131.txt'
+    file_path: '../data/grid_3_60.txt'
 }
 
 let params = {
@@ -50,7 +51,6 @@ let params = {
     custom_pad: CUSTOM_PAD.popup_custom_pad,
     image_upload_pad: CUSTOM_PAD.show_image_upload_popup,
     stored_shape_pad: STORED_SHAPE_PAD.popup_stored_shape,
-    test: create_grid
 }
 
 // global
@@ -123,13 +123,13 @@ function web_worker_receive_msg(evt) {
             agent_num: shape_config.agent_num, grid_data: grid_data
         });
     } else if (obj.cmd === "poseData") {
-        console.log("termi:", obj.step);
         poses_data.push(obj.data);
-        console.log(poses_data);
         total_step = poses_data.length;
         if (obj.step === 1) {
             reset_shape();
         }
+    } else if (obj.cmd === "done") {
+        done = true;
     }
 }
 
@@ -147,7 +147,6 @@ function create_GUI() {
     custom_folder.add(params, 'custom_pad').name('Draw a shape');
     custom_folder.add(params, 'image_upload_pad').name('Upload a pic')
     gui.add(params, "stored_shape_pad").name("Select a shape");
-    gui.add(params, "test");
 }
 
 // compute the shape of pattern to draw the outline
@@ -410,8 +409,8 @@ function init() {
     create_plane();
 
     // axis
-    var axesHelper = new THREE.AxesHelper(shape_config.grid_w);
-    scene.add(axesHelper);
+    // var axesHelper = new THREE.AxesHelper(shape_config.grid_w);
+    // scene.add(axesHelper);
 
     camera.position.z = 60;
 
@@ -588,11 +587,14 @@ function repaint_agent() {
 let done = false;
 let animate = function () {
     requestAnimationFrame(animate);
-
-    if (!done) {
-        if (poses_data.length >= 2) done = true;
+    if (!done && poses_data.length < mov_para.step + 2) {
         return;
     }
+
+    // if (!done) {
+    //     if (poses_data.length >= 2) done = true;
+    //     return;
+    // }
     // update the speed of agents
     if (mov_para.frame === 0) {
         fp_mov = (13 - params.speed) * 10;
@@ -628,10 +630,56 @@ document.getElementById("apply").addEventListener("click", function () {
     shape_config.agent_num = CUSTOM_PAD.agent_num;
     poses_data.length = 0;
     done = false;
-    console.log(grid_data)
     web_worker.postMessage({
         MessagePurpose: "getPoseData", width: shape_config.grid_w, height: shape_config.grid_h, shape_num: shape_config.shape_num,
         agent_num: shape_config.agent_num, grid_data: grid_data
     });
     CUSTOM_PAD.hide_custom_shape_popup();
 })
+
+// 选择已有形状按钮事件
+document.getElementById("stored_shape_apply").addEventListener("click", function () {
+    let radios = document.getElementsByName("grid_size");
+    let has_checked = null; // 选中的规模
+    for (let i = 0; i < radios.length; i++) {
+        if (radios[i].checked) {
+            has_checked = radios[i].id;
+        }
+    }
+    // 检查是否选中一种grid规模
+    if (!has_checked) {
+        alert("Please set the grid size!");
+    } else {
+        STORED_SHAPE_PAD.hide_stored_shape();
+    }
+
+
+    let stored_shape_obj = stored_para[STORED_SHAPE_PAD.selected_shape];
+    // 查找规模索引
+    let idx = -1;
+    let size_mat = has_checked.split(',');
+    for (let size_obj of stored_shape_obj.sizes) {
+        idx++;
+        if (size_obj.width === parseInt(size_mat[0]) && size_obj.height === parseInt(size_mat[1]))
+            break;
+    }
+    shape_config.file_path = data_file_path_generate(stored_para[STORED_SHAPE_PAD.selected_shape].sizes[idx].grid_file);
+    let obj = parse_grid(shape_config.file_path);
+    shape_config.grid_w = obj.grid_w, shape_config.grid_h = obj.grid_h;
+    grid_data = obj.content;
+    shape_config.shape_num = obj.shape_num;
+    shape_config.agent_num = obj.a_num;
+
+    poses_data.length = 0;
+    done = false;
+    let pose_file = data_file_path_generate(stored_para[STORED_SHAPE_PAD.selected_shape].sizes[idx].pose_file)
+    let { len, res } = parse_poses(pose_file);
+    total_step = len;
+    poses_data = res;
+    reset_shape();
+    done = true;
+});
+
+function data_file_path_generate(file) {
+    return "../data/" + file;
+}
