@@ -68,7 +68,7 @@ function init_custom_pad() {
                 let square = document.createElement("div");
                 square.className = "square_notClicked";
                 square.setAttribute("style", `width:${per_w}px;height:${per_w}px;position:"absolute";margin:${gap}px ${gap}px ${gap}px ${gap}px;cursor:pointer;border-radius: 6px;`);
-                square.id = i * height + j;
+                square.id = i * width + j;
                 td.appendChild(square);
                 tr.appendChild(td);
             }

@@ -1,8 +1,10 @@
 "use strict"
-
 import * as THREE from '../three.js-master/build/three.module.js';
 import { OrbitControls } from '../three.js-master/examples/jsm/controls/OrbitControls.js';
 import { GUI } from '../three.js-master/examples/jsm/libs/dat.gui.module.js';
+// import * as THREE from 'https://unpkg.com/three@<VERSION>/build/three.module.js';
+// import { OrbitControls } from 'https://unpkg.com/three@<VERSION>/examples/jsm/controls/OrbitControls.js';
+// import { GUI } from 'https://unpkg.com/three@<VERSION>/examples/jsm/libs/dat.gui.module.js';
 import { parse_grid, parse_file_name, parse_poses } from '../js/parse-module.js';
 import * as CUSTOM_PAD from '../js/custom_module.js';
 import * as STORED_SHAPE_PAD from '../js/stored_shape_module.js';
@@ -193,6 +195,7 @@ function outline_grid() {
         }
         last_up = -1, last_down = -1, start_node = -1, cur_node = -1;
     }
+    console.log(vertical_line)
 }
 
 // add the outline to the scene
@@ -266,7 +269,7 @@ function build_outline_wall() {
         side: THREE.DoubleSide
     });
     for (let line of vertical_line) {
-        let col = line[0] - shape_config.grid_w / 2, end_node = shape_config.grid_w / 2 - line[1], start_node = shape_config.grid_w / 2 - line[2];
+        let col = line[0] - shape_config.grid_w / 2, end_node = shape_config.grid_h / 2 - line[1], start_node = shape_config.grid_h / 2 - line[2];
         let geometry = new THREE.PlaneGeometry(outline_h, end_node - start_node);
         let mesh = new THREE.Mesh(geometry, materialX);
         mesh.position.y = (start_node + end_node) / 2;
@@ -412,7 +415,7 @@ function init() {
     // var axesHelper = new THREE.AxesHelper(shape_config.grid_w);
     // scene.add(axesHelper);
 
-    camera.position.z = 60;
+    camera.position.z = 20;
 
     window.onresize = function () {
 
@@ -444,7 +447,7 @@ function create_plane() {
     if (plane) {
         scene.remove(plane);
     }
-    let geometry = new THREE.PlaneGeometry(shape_config.grid_h, shape_config.grid_h, shape_config.grid_w, shape_config.grid_w);
+    let geometry = new THREE.PlaneGeometry(shape_config.grid_w, shape_config.grid_h, shape_config.grid_w, shape_config.grid_h);
     let mats = [];
     let material = new THREE.MeshBasicMaterial({
         color: 0xC0CDCF, side: THREE.DoubleSide
@@ -457,7 +460,7 @@ function create_plane() {
     plane = new THREE.Mesh(geometry, mats);
     for (let i = 0; i < geometry.faces.length; i++) {
         let _i = Math.floor(i / 2);
-        let row = Math.floor(_i / shape_config.grid_h), col = _i % shape_config.grid_w;
+        let row = Math.floor(_i / shape_config.grid_w), col = _i % shape_config.grid_w;
         if (grid_data[row][col] == 0)
             geometry.faces[i].materialIndex = 0;
         else {
@@ -465,7 +468,7 @@ function create_plane() {
         }
     }
     scene.add(plane);
-    geometry = new THREE.PlaneBufferGeometry(shape_config.grid_h, shape_config.grid_h, shape_config.grid_w, shape_config.grid_w);
+    geometry = new THREE.PlaneBufferGeometry(shape_config.grid_w, shape_config.grid_h, shape_config.grid_w, shape_config.grid_h);
 }
 
 // 重置grid场景，重置shape
@@ -634,6 +637,7 @@ document.getElementById("apply").addEventListener("click", function () {
         MessagePurpose: "getPoseData", width: shape_config.grid_w, height: shape_config.grid_h, shape_num: shape_config.shape_num,
         agent_num: shape_config.agent_num, grid_data: grid_data
     });
+    console.log(grid_data);
     CUSTOM_PAD.hide_custom_shape_popup();
 })
 
