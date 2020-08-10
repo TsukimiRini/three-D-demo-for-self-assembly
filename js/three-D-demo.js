@@ -2,17 +2,16 @@
 import * as THREE from '../three.js-master/build/three.module.js';
 import { OrbitControls } from '../three.js-master/examples/jsm/controls/OrbitControls.js';
 import { GUI } from '../three.js-master/examples/jsm/libs/dat.gui.module.js';
-// import * as THREE from 'https://unpkg.com/three@<VERSION>/build/three.module.js';
-// import { OrbitControls } from 'https://unpkg.com/three@<VERSION>/examples/jsm/controls/OrbitControls.js';
-// import { GUI } from 'https://unpkg.com/three@<VERSION>/examples/jsm/libs/dat.gui.module.js';
+
 import { parse_grid, parse_file_name, parse_poses } from '../js/parse-module.js';
 import * as CUSTOM_PAD from '../js/custom_module.js';
 import * as STORED_SHAPE_PAD from '../js/stored_shape_module.js';
 import { stored_para } from "../js/shape_para.js";
+import * as GLB_LOAD from "../js/import_glb_mods.js";
 
 // ======================parameter===============================
 // config
-let agent_types = ["cube", "sphere"];
+let agent_types = ["cube", "sphere", "slime", "man"];
 let agent_id = 1;
 let fp_mov = 80;
 let pause_frame = 60;
@@ -27,6 +26,42 @@ let mov_para = {
 let sphere_r = 0.45;
 let ori_height = 0.5;
 let outline_h = 1;
+
+let mod_file = {
+    "slime": "../glb/Slime.glb",
+    "man": "../glb/Worker_Male.glb",
+}
+let scale_config = {
+    "slime": 0.3,
+    "man": 0.5,
+}
+let init_rotation = {
+    "slime": {
+        x: Math.PI / 2,
+        y: Math.PI * 3 / 2
+    },
+    "man": {
+        x: Math.PI / 2,
+        y: Math.PI * 3 / 2
+    },
+}
+let animation_idx = {
+    "slime": 0,
+    "man": 9,
+}
+function dirX2rotation(x, y) {
+    if (x === 0 && y === 0) {
+        throw ("the object shouldn't move");
+    }
+    if (x === 1 && y === 0) return 0;
+    if (x === 1 && y === 1) return Math.PI / 4;
+    if (x === 1 && y === -1) return 7 * Math.PI / 4;
+    if (x === 0 && y === 1) return Math.PI / 2;
+    if (x === 0 && y === -1) return 3 * Math.PI / 2;
+    if (x === -1 && y === 0) return Math.PI;
+    if (x === -1 && y === 1) return 3 * Math.PI / 4;
+    if (x === -1 && y === -1) return 5 * Math.PI / 4;
+}
 
 let custom_shape_id = 10;
 
@@ -77,7 +112,7 @@ let poses_data = [];// poses_data[i][2*r]:x of agent r in i-th step
 // 3d场景离页面边缘距离
 let window_margin = 50;
 
-let gotPoseData = false, gotAgentNum = false;
+let done = false;
 // ================================================================
 
 // ========================main====================================
@@ -358,6 +393,24 @@ function sphere_generate() {
     mov_para.dirY = 0;
     mov_para.frame = 0;
 }
+
+function model_generate() {
+    let mod_name = agent_types[agent_id];
+    for (let i = 0; i < shape_config.agent_num; i++) {
+        let position = {
+            x: poses_data[0][2 * i] - shape_config.grid_w / 2 + 0.5,
+            y: poses_data[0][2 * i + 1] - shape_config.grid_h / 2 + 0.5,
+            z: 0.01
+        }
+        GLB_LOAD.load_glb(i, mod_file[mod_name], scene, position, scale_config[mod_name], init_rotation[mod_name], animation_idx[mod_name]);
+    }
+
+    // 参数重置
+    mov_para.step = 0;
+    mov_para.dirX = 0;
+    mov_para.dirY = 0;
+    mov_para.frame = 0;
+}
 //===============================================================
 function init() {
     // load data
@@ -508,6 +561,22 @@ function reset_group() {
     mov_para.frame = 0;
 }
 
+function reset_model() {
+    mov_para.step = 0;
+    for (let i = 0; i < shape_config.agent_num; i++) {
+        let position = {
+            x: poses_data[0][2 * i] - shape_config.grid_w / 2 + 0.5,
+            y: poses_data[0][2 * i + 1] - shape_config.grid_h / 2 + 0.5,
+            z: 0.01
+        }
+        GLB_LOAD.set_position(i, position);
+        // GLB_LOAD.set_rotation(i, init_rotation.y);
+    }
+    mov_para.dirX = 0;
+    mov_para.dirY = 0;
+    mov_para.frame = 0;
+}
+
 // 清除所有agent（切换agent模型使用）
 function clear_agents() {
     if (groups.length) {
@@ -528,6 +597,12 @@ function clear_agents() {
         scene.remove(obj);
     }
     shadows.length = 0;
+}
+function clear_agents_model() {
+    for (let model of GLB_LOAD.models) {
+        scene.remove(model);
+    }
+    GLB_LOAD.clear_storage();
 }
 
 function agent_move_cube() {
@@ -577,20 +652,69 @@ function agent_move_sphere() {
     }
 }
 
+function agent_move_model() {
+    if (mov_para.step >= total_step - 1) {
+        if (mov_para.frame) {
+            for (let i = 0; i < shape_config.agent_num; i++) {
+                if (GLB_LOAD.walks[i].isRunning()) {
+                    GLB_LOAD.walks[i].stop();
+                }
+            }
+        }
+        mov_para.frame++;
+        if (mov_para.frame === pause_frame) {
+            reset_model();
+        }
+        return;
+    }
+
+    for (let i = 0; i < shape_config.agent_num; i++) {
+        {
+            mov_para.dirX = poses_data[mov_para.step + 1][2 * i] - poses_data[mov_para.step][2 * i];
+            mov_para.dirY = poses_data[mov_para.step + 1][2 * i + 1] - poses_data[mov_para.step][2 * i + 1];
+            if (mov_para.dirX || mov_para.dirY) {
+                let final_rotation = dirX2rotation(mov_para.dirX, mov_para.dirY);
+                GLB_LOAD.set_rotation(i, final_rotation);
+                GLB_LOAD.models[i].position.x += mov_para.dirX * per_mov;
+                GLB_LOAD.models[i].position.y += mov_para.dirY * per_mov;
+                if (!GLB_LOAD.walks[i].isRunning()) {
+                    GLB_LOAD.walks[i].play();
+                }
+            }
+            else if (GLB_LOAD.walks[i].isRunning()) {
+                GLB_LOAD.walks[i].stop();
+            }
+
+        }
+    }
+
+    mov_para.frame = (mov_para.frame + 1) % fp_mov;
+    if (mov_para.frame === 0) {
+        mov_para.step++;
+    }
+}
+
 function repaint_agent() {
+    console.log("repaint")
     clear_agents();
+    clear_agents_model();
     agent_id = agent_types.indexOf(params.agent_type);
     if (params.agent_type === 'cube') {
         cube_generate();
     } else if (params.agent_type === 'sphere') {
         sphere_generate();
+    } else {
+        model_generate();
     }
 }
 
-let done = false;
 let animate = function () {
     requestAnimationFrame(animate);
     if (!done && poses_data.length < mov_para.step + 2) {
+        return;
+    }
+    if (agent_id >= 2 && !GLB_LOAD.all_ready(shape_config.agent_num)) {
+        console.log(agent_types[agent_id])
         return;
     }
 
@@ -605,11 +729,19 @@ let animate = function () {
     }
     if (params.agent_type !== agent_types[agent_id]) {
         repaint_agent();
+        return;
     }
     if (agent_types[agent_id] === 'cube')
         agent_move_cube();
     else if (agent_types[agent_id] === 'sphere')
         agent_move_sphere();
+    else {
+        agent_move_model();
+    }
+
+    if (agent_id >= 2) {
+        GLB_LOAD.update_all(1 / fp_mov);
+    }
     controls.update();
 
     renderer.render(scene, camera);
