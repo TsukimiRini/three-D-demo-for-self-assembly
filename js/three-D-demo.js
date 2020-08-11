@@ -11,7 +11,7 @@ import * as GLB_LOAD from "../js/import_glb_mods.js";
 
 // ======================parameter===============================
 // config
-let agent_types = ["cube", "sphere", "slime", "man"];
+let agent_types = ["cube", "sphere", "slime", "man", "puppy"];
 let agent_id = 1;
 let fp_mov = 80;
 let pause_frame = 60;
@@ -30,10 +30,12 @@ let outline_h = 1;
 let mod_file = {
     "slime": "../glb/Slime.glb",
     "man": "../glb/Worker_Male.glb",
+    "puppy": "../glb/Pug.glb",
 }
 let scale_config = {
     "slime": 0.3,
     "man": 0.5,
+    "puppy": 0.27,
 }
 let init_rotation = {
     "slime": {
@@ -42,25 +44,31 @@ let init_rotation = {
     },
     "man": {
         x: Math.PI / 2,
-        y: Math.PI * 3 / 2
+        y: Math.PI * 2
+    },
+    "puppy": {
+        x: Math.PI / 2,
+        y: 2 * Math.PI
     },
 }
 let animation_idx = {
     "slime": 0,
     "man": 9,
+    "puppy": 1,
 }
 function dirX2rotation(x, y) {
     if (x === 0 && y === 0) {
         throw ("the object shouldn't move");
     }
-    if (x === 1 && y === 0) return 0;
-    if (x === 1 && y === 1) return Math.PI / 4;
-    if (x === 1 && y === -1) return 7 * Math.PI / 4;
-    if (x === 0 && y === 1) return Math.PI / 2;
-    if (x === 0 && y === -1) return 3 * Math.PI / 2;
-    if (x === -1 && y === 0) return Math.PI;
-    if (x === -1 && y === 1) return 3 * Math.PI / 4;
-    if (x === -1 && y === -1) return 5 * Math.PI / 4;
+    let agent_name = agent_types[agent_id];
+    if (x === 1 && y === 0) return init_rotation[agent_name].y - Math.PI * 3 / 2;
+    if (x === 1 && y === 1) return Math.PI / 4 + init_rotation[agent_name].y - Math.PI * 3 / 2;
+    if (x === 1 && y === -1) return 7 * Math.PI / 4 + init_rotation[agent_name].y - Math.PI * 3 / 2;
+    if (x === 0 && y === 1) return Math.PI / 2 + init_rotation[agent_name].y - Math.PI * 3 / 2;
+    if (x === 0 && y === -1) return 3 * Math.PI / 2 + init_rotation[agent_name].y - Math.PI * 3 / 2;
+    if (x === -1 && y === 0) return Math.PI + init_rotation[agent_name].y - Math.PI * 3 / 2;
+    if (x === -1 && y === 1) return 3 * Math.PI / 4 + init_rotation[agent_name].y - Math.PI * 3 / 2;
+    if (x === -1 && y === -1) return 5 * Math.PI / 4 + init_rotation[agent_name].y - Math.PI * 3 / 2;
 }
 
 let custom_shape_id = 10;
@@ -71,7 +79,8 @@ let shape_config = {
     grid_h: null,
     shape_num: null,
     agent_num: null,
-    file_path: '../data/grid_3_60.txt'
+    file_path: '../data/grid_3_60.txt',
+    pose_path: '../data/poses_3_60.txt'
 }
 
 let params = {
@@ -122,7 +131,9 @@ window.addEventListener("load", function () {
 // load data
 let { grid_w, grid_h, content: grid_data, shape_num, a_num } = parse_grid(shape_config.file_path);
 init_shape_data();
-// let { i: pose_line, content: poses_data } = parse_poses('../data/poses_0_52.txt');
+let { len, res } = parse_poses(shape_config.pose_path);
+total_step = len;
+poses_data = res;
 // load shadow texture & create shadow geometry and material
 const loader = new THREE.TextureLoader();
 const shadowTexture = loader.load('./img/roundshadow.png'); // load the fake shadow texture
@@ -133,6 +144,8 @@ STORED_SHAPE_PAD.init_stored_shape();
 let web_worker = create_web_worker();
 web_worker.postMessage({ MessagePurpose: "SetUp" });
 init();
+reset_shape();
+done = true;
 create_GUI();
 // =================================================================
 function init_shape_data() {
@@ -155,10 +168,10 @@ function web_worker_receive_msg(evt) {
     if (obj.cmd === "ready") { // main logic
         console.log("ready!")
         // web_worker.postMessage({ MessagePurpose: "getAgentNum", width: grid_w, height: grid_h });
-        web_worker.postMessage({
-            MessagePurpose: "getPoseData", width: shape_config.grid_w, height: shape_config.grid_h, shape_num: shape_config.shape_num,
-            agent_num: shape_config.agent_num, grid_data: grid_data
-        });
+        // web_worker.postMessage({
+        //     MessagePurpose: "getPoseData", width: shape_config.grid_w, height: shape_config.grid_h, shape_num: shape_config.shape_num,
+        //     agent_num: shape_config.agent_num, grid_data: grid_data
+        // });
     } else if (obj.cmd === "poseData") {
         poses_data.push(obj.data);
         total_step = poses_data.length;
@@ -459,7 +472,7 @@ function init() {
     create_grid();
 
     // create agents
-    // sphere_generate();
+    sphere_generate();
 
     // a plane to show the grid pattern
     create_plane();
@@ -658,6 +671,8 @@ function agent_move_model() {
             for (let i = 0; i < shape_config.agent_num; i++) {
                 if (GLB_LOAD.walks[i].isRunning()) {
                     GLB_LOAD.walks[i].stop();
+                    let rot = dirX2rotation(0, -1);
+                    GLB_LOAD.set_rotation(i, rot);
                 }
             }
         }
@@ -683,6 +698,8 @@ function agent_move_model() {
             }
             else if (GLB_LOAD.walks[i].isRunning()) {
                 GLB_LOAD.walks[i].stop();
+                let rot = dirX2rotation(0, -1);
+                GLB_LOAD.set_rotation(i, rot);
             }
 
         }
