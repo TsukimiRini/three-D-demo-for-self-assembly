@@ -1,10 +1,11 @@
 "use strict"
 
+import { generateGrid } from "../js/canvas_grid_genration.js"
+
 let close_btn_custom_shape = document.getElementById("custom_shape_close");
 let custom_pad = document.getElementById("custom_shape_popup");
-let width_ipt = document.getElementById("width");
-let height_ipt = document.getElementById("height");
-let width = 30, height = 30;
+let size_ipt = document.getElementById("custom_grid_size");
+let width = 16, height = 16;
 let gap = 0.3;
 let first_time = true;
 let shape_data = [];
@@ -25,22 +26,27 @@ function init_custom_pad() {
         document.getElementById("file_uploader").click();
     }
     document.getElementById("file_uploader").addEventListener("change", function () {
-        if (this.value.length == 0) {
+        let file = this.files[0];
+        if (!file) {
+            this.files = this.oldFile;
+            file = this.files[0];
+        }
+        else if (file.type !== "image/png") {
+            alert("Please select a .png file!");
+            this.files = this.oldFile;
+            file = this.files[0];
+        }
+        if (file.name.length == 0) {
             document.getElementById("file_name").textContent = "image to be uploaded...";
             return;
         }
-        document.getElementById("file_name").textContent = this.value;
+        document.getElementById("file_name").textContent = file.name;
+        this.oldFile = this.files;
     })
 
     let shape_selector = document.getElementById("shape_selector");
     // 用户更改grid的规模时改变形状选择中生成的图示。
-    width_ipt.onchange = height_ipt.onchange = function () {
-        if (width_ipt.value >= 40) {
-            width_ipt.value = 40;
-        }
-        if (height_ipt.value >= 40) {
-            height_ipt.value = 40;
-        }
+    size_ipt.onchange = function () {
         if (this.value === this.oldVal) {
             return;
         }
@@ -53,7 +59,7 @@ function init_custom_pad() {
 
         // 计算生成正方形的边长。
         let total_wid = document.getElementsByClassName("custom_row")[0].offsetWidth;
-        width = parseInt(width_ipt.value), height = parseInt(height_ipt.value);
+        width = height = parseInt(size_ipt.value);
         let per_w = Math.min((total_wid - width * gap * 2 + gap * 2) / width, 15);
         let total_h = per_w * height + gap * height * 2 - gap * 2 + 30;
         shape_selector.style.height = `${total_h}px`;
@@ -99,15 +105,11 @@ function init_custom_pad() {
     //     hide_custom_shape_popup();
     // }
     document.getElementById("reset").onclick = function () {
-        width_ipt.oldVal = undefined;
-        width_ipt.onchange();
+        size_ipt.oldVal = undefined;
+        size_ipt.onchange();
     }
     document.getElementById("cancel").onclick = function () {
         hide_custom_shape_popup();
-    }
-    // 上传图片按钮逻辑
-    document.getElementById("img_apply").onclick = function () {
-        hide_image_upload_popup();
     }
     document.getElementById("img_cancel").onclick = function () {
         hide_image_upload_popup();
@@ -125,7 +127,7 @@ function hide_custom_shape_popup() {
 function popup_custom_pad() {
     show_custom_shape_popup();
     if (first_time) {
-        width_ipt.onchange();
+        size_ipt.onchange();
         first_time = false;
     }
 }
@@ -142,4 +144,23 @@ function hide_image_upload_popup() {
     image_upload_pad.style.display = 'none';
 }
 
-export { init_custom_pad, popup_custom_pad, show_image_upload_popup,hide_custom_shape_popup,new_shape_data,width,height,agent_num };
+// 上传图片按钮逻辑
+// document.getElementById("img_apply").addEventListener("click", function () {
+//     let file_uploader = document.getElementById("file_uploader");
+//     let file = file_uploader.files[0];
+//     let reader = new FileReader();
+//     reader.readAsDataURL(file);
+//     reader.onload = function (e) {
+//         let url = e.target.result;
+//         let image = new Image();
+//         image.src = url;
+//         let grid;
+//         image.onload = function () {
+//             grid=generateGrid(image, 16, 16);
+//         };
+//         new_shape_data
+//     }
+//     hide_image_upload_popup();
+// });
+
+export { init_custom_pad, popup_custom_pad, show_image_upload_popup, hide_custom_shape_popup, hide_image_upload_popup, new_shape_data, width, height, agent_num };

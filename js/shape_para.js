@@ -23,7 +23,7 @@ let stored_para = [
                 pose_file: "poses_0_0_80_80_chinese_gong_77_780.txt"
             },
         ]
-    }
+    },
 ]
 
 export { stored_para };

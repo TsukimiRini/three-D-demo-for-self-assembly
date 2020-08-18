@@ -30,6 +30,9 @@
 <body>
 	<script src="./splide-2.4.8/dist/js/splide.min.js"></script>
 	<script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
+	<script src="./js/scale.min.js"></script>
+	<!-- <script src="./js/downscale/downsample.js"></script>
+	<script src="./js/downscale/downscale.js"></script> -->
 	<script type="module" src="./js/three-D-demo.js"></script>
 	<div class="center_block">
 		<div id="threeJS">
@@ -45,8 +48,14 @@
 				<label class="custom_title">Grid Size</label>
 			</div>
 			<div class="custom_row" style="text-align: center;">
-				<div class="column-2">Width:<input class="input_box" id="width" value=30></input></div>
-				<div class="column-2">Height:<input class="input_box" id="height" value=30></input></div>
+				<!-- <div class="column-2">Width:<input class="input_box" id="width" value=30></input></div>
+				<div class="column-2">Height:<input class="input_box" id="height" value=30></input></div> -->
+				<select id="custom_grid_size" class="selector_size">
+					<option value="16">16*16</option>
+					<option value="24">24*24</option>
+					<option value="32">32*32</option>
+					<option value="40">40*40</option>
+				</select>
 			</div>
 			<div class="custom_row">
 				<label class="custom_title">Shape Setting</label>
@@ -73,17 +82,25 @@
 				<p class="column-2" style="width: 100%;">Please upload an image(.png file only).</p>
 			</div>
 			<div class="custom_row" style="text-align: center;">
+				<p style="font-family: Inconsolata, Helvetica;">And choose your preferred grid size:</p>
+				<select id="image_grid_size" class="selector_size">
+					<option value="16">16*16</option>
+					<option value="24">24*24</option>
+					<option value="32">32*32</option>
+					<option value="40">40*40</option>
+				</select>
+				</br>
 				<button class="upload" id="file_wrapper" style="width: auto;">click here to upload</button>
 				<p id="file_name" style="font-family: Inconsolata, Helvetica;">image to be uploaded...</p>
-				<input type="file" name="" id="file_uploader" accept='image/*' style="display: none;">
-				<button class="confirm" id="img_apply"">Apply</button>
-				<button type=" button" class="cancel" id="img_cancel"">Cancel</button>
+				<input type="file" name="" id="file_uploader" accept='image/png' style="display: none;">
+				<button class="confirm" id="img_apply">Apply</button>
+				<button type=" button" class="cancel" id="img_cancel">Cancel</button>
 				<!-- <a href=" javascript:;" class="lookFile" style="line-height:22px;text-decoration:none;color:#FFF;">文件上传</a>
 					<input
 						style="width:100%;height:100%;cursor:pointer;opacity:0;position:absolute;top:0px;left:0;font-size:0;"
 						accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
 						onclick="alert(`定义方法`)" type="file" class="updateFile" value="上传文件"> -->
-					<!--<br><img id="myImg" src="#" alt="your image" height=200 width=100>-->
+				<!--<br><img id="myImg" src="#" alt="your image" height=200 width=100>-->
 			</div>
 		</div>
 	</div>

@@ -33,3 +33,6 @@ self-assembely/
 js/main*
 py/
 glb/
+test/
+scale.js-main/
+js/scale.min.js

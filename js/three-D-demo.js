@@ -8,6 +8,7 @@ import * as CUSTOM_PAD from '../js/custom_module.js';
 import * as STORED_SHAPE_PAD from '../js/stored_shape_module.js';
 import { stored_para } from "../js/shape_para.js";
 import * as GLB_LOAD from "../js/import_glb_mods.js";
+import { generateGrid } from "../js/canvas_grid_genration.js"
 
 // ======================parameter===============================
 // config
@@ -789,6 +790,41 @@ document.getElementById("apply").addEventListener("click", function () {
     console.log(grid_data);
     CUSTOM_PAD.hide_custom_shape_popup();
 })
+
+// 上传图片面板apply按钮事件
+document.getElementById("img_apply").addEventListener("click", function () {
+    let size = document.getElementById("image_grid_size").value;
+    size = parseInt(size);
+
+    let file_uploader = document.getElementById("file_uploader");
+    let file = file_uploader.files[0];
+    if (!file) {
+        alert("Please select a .png file!");
+        return;
+    }
+    let reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = function (e) {
+        let url = e.target.result;
+        let image = new Image();
+        image.src = url;
+        let grid;
+        image.onload = function () {
+            let obj = generateGrid(image, size, size);
+            grid_data = obj.grid;
+            shape_config.agent_num = obj.agent_num;
+            shape_config.grid_w = size, shape_config.grid_h = size;
+            shape_config.shape_num = custom_shape_id;
+            poses_data.length = 0;
+            done = false;
+            web_worker.postMessage({
+                MessagePurpose: "getPoseData", width: shape_config.grid_w, height: shape_config.grid_h, shape_num: shape_config.shape_num,
+                agent_num: shape_config.agent_num, grid_data: grid_data
+            });
+            CUSTOM_PAD.hide_image_upload_popup();
+        };
+    }
+});
 
 // 选择已有形状按钮事件
 document.getElementById("stored_shape_apply").addEventListener("click", function () {
