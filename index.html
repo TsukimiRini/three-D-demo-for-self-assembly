@@ -78,11 +78,11 @@
 		<span class="helper"></span>
 		<div>
 			<div class="popupCloseButton" id="image_shape_close">&times;</div>
+			<!-- <div class="custom_row" style="text-align: center;">
+				<p class="column-2" style="width: 100%;">And upload an image(.png file only).</p>
+			</div> -->
 			<div class="custom_row" style="text-align: center;">
-				<p class="column-2" style="width: 100%;">Please upload an image(.png file only).</p>
-			</div>
-			<div class="custom_row" style="text-align: center;">
-				<p style="font-family: Inconsolata, Helvetica;">And choose your preferred grid size:</p>
+				<p style="font-family: Inconsolata, Helvetica;">Choose your preferred grid size:</p>
 				<select id="image_grid_size" class="selector_size">
 					<option value="16">16*16</option>
 					<option value="24">24*24</option>
@@ -90,7 +90,14 @@
 					<option value="40">40*40</option>
 				</select>
 				</br>
+				<div class="custom_row" style="text-align: center;">
+					<p class="column-2" style="width: 100%;">And upload an image(.png file only).</p>
+				</div>
 				<button class="upload" id="file_wrapper" style="width: auto;">click here to upload</button>
+				<!-- <div class="custom_row" style="text-align: center;">
+					<canvas id="show_image" style="display: none;text-align: center;"></canvas>
+				</div> -->
+
 				<p id="file_name" style="font-family: Inconsolata, Helvetica;">image to be uploaded...</p>
 				<input type="file" name="" id="file_uploader" accept='image/png' style="display: none;">
 				<button class="confirm" id="img_apply">Apply</button>

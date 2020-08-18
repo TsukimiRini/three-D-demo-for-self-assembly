@@ -8,7 +8,7 @@ import * as CUSTOM_PAD from '../js/custom_module.js';
 import * as STORED_SHAPE_PAD from '../js/stored_shape_module.js';
 import { stored_para } from "../js/shape_para.js";
 import * as GLB_LOAD from "../js/import_glb_mods.js";
-import { generateGrid } from "../js/canvas_grid_genration.js"
+import { generateGrid,showImage } from "../js/canvas_grid_genration.js"
 
 // ======================parameter===============================
 // config

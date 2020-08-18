@@ -1,6 +1,6 @@
 "use strict"
 
-import { generateGrid } from "../js/canvas_grid_genration.js"
+import { generateGrid, showImage } from "../js/canvas_grid_genration.js"
 
 let close_btn_custom_shape = document.getElementById("custom_shape_close");
 let custom_pad = document.getElementById("custom_shape_popup");
@@ -30,17 +30,29 @@ function init_custom_pad() {
         if (!file) {
             this.files = this.oldFile;
             file = this.files[0];
+            return;
         }
         else if (file.type !== "image/png") {
             alert("Please select a .png file!");
             this.files = this.oldFile;
             file = this.files[0];
+            return;
         }
         if (file.name.length == 0) {
             document.getElementById("file_name").textContent = "image to be uploaded...";
             return;
         }
         document.getElementById("file_name").textContent = file.name;
+        // let reader = new FileReader();
+        // reader.readAsDataURL(file);
+        // reader.onload = function (e) {
+        //     let image = new Image();
+        //     image.src = e.target.result;
+        //     console.log(image.src)
+        //     image.onload = function () {
+        //         showImage(image, 200, 200);
+        //     }
+        }
         this.oldFile = this.files;
     })
 
