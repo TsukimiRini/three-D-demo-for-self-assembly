@@ -768,15 +768,28 @@ let animate = function () {
 animate();
 
 function arrTrans(num, arr) {
+    let len = arr.length;
+    console.log(len);
     const newArr = [];
-    while (arr.length > 0) {
-        newArr.push(arr.splice(0, num));
+    for (let i = 0; i < len; i += num) {
+        newArr.push(arr.slice(i, i + num));
     }
     return newArr;
 }
 
 // 自定义面板按钮事件
 document.getElementById("apply").addEventListener("click", function () {
+    // 检查用户定义的形状是否合法
+    let valid = false;
+    for (let node of CUSTOM_PAD.new_shape_data) {
+        if (node === 1) {
+            valid = true;
+        }
+    }
+    if (!valid) {
+        alert("Please draw a shape!");
+        return;
+    }
     grid_data = arrTrans(CUSTOM_PAD.width, CUSTOM_PAD.new_shape_data);
     shape_config.grid_w = CUSTOM_PAD.width, shape_config.grid_h = CUSTOM_PAD.height;
     shape_config.shape_num = custom_shape_id;
