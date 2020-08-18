@@ -5,9 +5,9 @@ import { stored_para } from "../js/shape_para.js";
 let slider = document.getElementById("predefined_shape_selector");
 let images_show = document.getElementById("images_show");
 let size_tags = document.getElementById("size_tags");
-let first = true
 let splider_obj = null;
 let selected_shape = -1;
+let first = true;
 
 function init_stored_shape() {
     // 右上角关闭
@@ -19,6 +19,8 @@ function init_stored_shape() {
     document.getElementById("stored_shape_cancel").onclick = function () {
         hide_stored_shape();
     }
+
+    load_on_first_time();
 }
 
 function create_size_tag(width, height) {
@@ -41,8 +43,12 @@ function create_size_tag(width, height) {
 
 function load_on_first_time() {
     // 加入图片
+    let i = 0;
     for (let shape of stored_para) {
         let image_slide = document.createElement("li");
+        // if (i === 0)
+        //     image_slide.className = "splide__slide.is-active";
+        // else
         image_slide.className = "splide__slide";
         image_slide.id = shape.shape_name;
 
@@ -51,6 +57,8 @@ function load_on_first_time() {
 
         image_slide.appendChild(image);
         images_show.appendChild(image_slide);
+
+        i++;
     }
     // 初始化slider
     splider_obj = new Splide("#shape-slider", {
@@ -61,26 +69,40 @@ function load_on_first_time() {
         },
         focus: 'center',
         autoWidth: true,
-    }).mount();
+        lazyLoad: 'nearby',
+        updateOnMove: true,
+    });
+    splider_obj.on("mounted", function () {
+        console.log("aa")
+        splider_obj.go('+1');
+    })
+    splider_obj.mount();
+
 
     // 切换选择的图片时
     splider_obj.on("move", function (new_idx, old_idx, dest_idx) {
-        while (size_tags.hasChildNodes()) {
-            size_tags.removeChild(size_tags.firstChild);
-        }
-        let shape_obj = stored_para[new_idx];
-        for (let size of shape_obj.sizes) {
-            create_size_tag(size.width, size.height);
-        }
-        selected_shape = new_idx;
+        getSizeTags(new_idx);
         console.log(new_idx, old_idx, dest_idx);
     })
+}
+
+// 选中某个形状并生成size tag
+function getSizeTags(idx) {
+    while (size_tags.hasChildNodes()) {
+        size_tags.removeChild(size_tags.firstChild);
+    }
+    let shape_obj = stored_para[idx];
+    for (let size of shape_obj.sizes) {
+        create_size_tag(size.width, size.height);
+    }
+    selected_shape = idx;
 }
 
 function popup_stored_shape() {
     show_stored_shape();
     if (first) {
-        load_on_first_time();
+        splider_obj.refresh();
+        getSizeTags(0);
         first = false;
     }
 }
