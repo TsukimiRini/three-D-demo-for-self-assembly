@@ -52,7 +52,7 @@ function init_custom_pad() {
         //     image.onload = function () {
         //         showImage(image, 200, 200);
         //     }
-        }
+        // }
         this.oldFile = this.files;
     })
 
