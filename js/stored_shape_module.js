@@ -100,11 +100,8 @@ function getSizeTags(idx) {
 
 function popup_stored_shape() {
     show_stored_shape();
-    if (first) {
-        splider_obj.refresh();
-        getSizeTags(0);
-        first = false;
-    }
+    splider_obj.refresh();
+    getSizeTags(splider_obj.index);
 }
 
 function show_stored_shape() {
