@@ -36,3 +36,6 @@ glb/
 test/
 scale.js-main/
 js/scale.min.js
+Chart.*
+js/plotly-latest.min.js
+js/draw_worker.js

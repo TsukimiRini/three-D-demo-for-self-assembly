@@ -30,6 +30,7 @@
 <body>
 	<script src="./splide-2.4.8/dist/js/splide.min.js"></script>
 	<script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
+	<script src='./js/plotly-latest.min.js'></script>
 	<script src="./js/scale.min.js"></script>
 	<!-- <script src="./js/downscale/downsample.js"></script>
 	<script src="./js/downscale/downscale.js"></script> -->
@@ -40,7 +41,8 @@
 		</div>
 	</div>
 	<div style="float: left;width: 300px;">
-		11111
+		<div id="heatmap_r" style="width: 400px;height: 300px;margin-top: 100px;"></div>
+		<div id="heatmap_b" style="width: 400px;height: 300px;"></div>
 	</div>
 	<div style="display: block;height:100px;bottom: 0px;position: absolute;width: 100%;">
 		<img src="img/last_step.png" style="margin-left: 33%;width: 50px;height: 50px;" class="image_btn_inactive"

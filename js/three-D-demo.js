@@ -8,7 +8,8 @@ import * as CUSTOM_PAD from '../js/custom_module.js';
 import * as STORED_SHAPE_PAD from '../js/stored_shape_module.js';
 import { stored_para } from "../js/shape_para.js";
 import * as GLB_LOAD from "../js/import_glb_mods.js";
-import { generateGrid, showImage } from "../js/canvas_grid_genration.js"
+import { generateGrid, showImage } from "../js/canvas_grid_genration.js";
+import { calculate_lf, drawHeatMap } from "../js/ALF.js";
 
 // ======================parameter===============================
 // config
@@ -135,11 +136,12 @@ let poses_data = [];// poses_data[i][2*r]:x of agent r in i-th step
 
 // 3d场景离页面边缘距离
 let window_margin = 50;
-let right_block = 300;
+let right_block = 400;
 let bottom_block = 100;
 
 let done = false;
 let paused = false;
+let draw_heat_map_completed = true;
 // ================================================================
 
 // ========================main====================================
@@ -160,6 +162,7 @@ const shadowGeo = new THREE.PlaneBufferGeometry(planeSize, planeSize);
 
 STORED_SHAPE_PAD.init_stored_shape();
 let web_worker = create_web_worker();
+// let timer_worker = create_timer_worker();
 web_worker.postMessage({ MessagePurpose: "SetUp" });
 init();
 reset_shape();
@@ -772,8 +775,16 @@ let animate = function () {
     // }
     // update the speed of agents
     if (mov_para.frame === 0) {
+        // if (draw_heat_map_completed === false) {
+        //     return;
+        // }
         fp_mov = (13 - params.speed) * 10;
         per_mov = 1 / fp_mov;
+
+        draw_ALF();
+        // timer_worker.postMessage({
+        //     MessagePurpose: "timer"
+        // })
     }
     if (params.agent_type !== agent_types[agent_id]) {
         repaint_agent();
@@ -980,6 +991,7 @@ document.getElementById("last_step").addEventListener("click", function () {
             mov_para.frame = 0;
         }
     }
+    draw_ALF();
 })
 
 // 按下下一步按钮
@@ -1008,6 +1020,8 @@ document.getElementById("next_step").addEventListener("click", function () {
             mov_para.frame = 0;
         }
     }
+
+    draw_ALF();
 })
 
 function step_change_helper(slipt_step, minus) {
@@ -1073,3 +1087,47 @@ function step_change_helper(slipt_step, minus) {
         }
     }
 }
+
+// 绘制热力图
+function draw_ALF() {
+    let heat_data = calculate_lf(grid_data, poses_data[mov_para.step], mov_para.step, shape_config.agent_num);
+    draw_heat_map_completed = false;
+
+    drawHeatMap("heatmap_r", heat_data.res_r, shape_config.grid_w, shape_config.grid_h);
+    drawHeatMap("heatmap_b", heat_data.res_b, shape_config.grid_w, shape_config.grid_h);
+}
+
+// // 用以绘制热力图的web worker创建
+// function create_draw_worker() {
+//     let web_worker = new Worker("../js/draw_worker.js");
+//     web_worker.onerror = function (evt) { console.log(`Error from Web Worker: ${evt.message}`); }
+//     web_worker.onmessage = draw_worker_receive_msg;
+//     return web_worker;
+// }
+
+// function draw_worker_receive_msg(evt) {
+//     let obj = evt.data;
+//     if (obj.cmd === "ready") {
+//         console.log("ready!")
+//         draw_heat_map_completed = true;
+//     }
+// }
+
+// 用以绘制热力图的web worker创建
+// function create_timer_worker() {
+//     let web_worker = new Worker("../js/timer_worker.js");
+//     web_worker.onerror = function (evt) { console.log(`Error from Web Worker: ${evt.message}`); }
+//     web_worker.onmessage = timer_worker_receive_msg;
+//     return web_worker;
+// }
+
+// function timer_worker_receive_msg(evt) {
+//     let obj = evt.data;
+//     if (obj.cmd === "ready") {
+//         console.log("ready!")
+//         // 计算热力图
+//         let heat_data = calculate_lf(grid_data, poses_data[mov_para.step], mov_para.step, shape_config.agent_num);
+//         drawHeatMap("heatmap_r", heat_data.res_r, shape_config.grid_w, shape_config.grid_h);
+//         drawHeatMap("heatmap_b", heat_data.res_b, shape_config.grid_w, shape_config.grid_h);
+//     }
+// }
