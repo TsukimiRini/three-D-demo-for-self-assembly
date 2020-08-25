@@ -675,6 +675,9 @@ function agent_move_sphere() {
             let offset = Math.sin(Math.PI / fp_mov * mov_para.frame);
             objects[i].position.z = 1.5 * offset + ori_height;
             shadows[i].material.opacity = THREE.MathUtils.lerp(0.8, .15, offset);
+        } else if (Math.abs(objects[i].position.z - ori_height) > Number.EPSILON) {
+            objects[i].position.z = ori_height;
+            shadows[i].material.opacity = 0.8;
         }
     }
     mov_para.frame = (mov_para.frame + 1) % fp_mov;
@@ -1050,7 +1053,7 @@ function step_change_helper(slipt_step, minus) {
                 let offset = Math.sin(Math.PI / fp_mov * mov_para.frame);
                 objects[i].position.z = 1.5 * offset + ori_height;
                 shadows[i].material.opacity = THREE.MathUtils.lerp(0.8, .15, offset);
-            } else if (objects[i].position.z) { // 如果这一步object没动，那么它必定在平面上
+            } else if (Math.abs(objects[i].position.z - ori_height) > Number.EPSILON) { // 如果这一步object没动，那么它必定在平面上
                 objects[i].position.z = ori_height;
                 shadows[i].material.opacity = 0.8;
             }
