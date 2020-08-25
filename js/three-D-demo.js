@@ -8,7 +8,7 @@ import * as CUSTOM_PAD from '../js/custom_module.js';
 import * as STORED_SHAPE_PAD from '../js/stored_shape_module.js';
 import { stored_para } from "../js/shape_para.js";
 import * as GLB_LOAD from "../js/import_glb_mods.js";
-import { generateGrid,showImage } from "../js/canvas_grid_genration.js"
+import { generateGrid, showImage } from "../js/canvas_grid_genration.js"
 
 // ======================parameter===============================
 // config
@@ -27,6 +27,9 @@ let mov_para = {
 let sphere_r = 0.45;
 let ori_height = 0.5;
 let outline_h = 1;
+
+// 上一步/下一步按钮的粒度设置
+const slipt_of_step = 5;
 
 let mod_file = {
     "slime": "../glb/Slime.glb",
@@ -108,6 +111,17 @@ let grid = null;
 let plane = null;
 let camera = null;
 
+// gui element
+let GUI_domElement = {
+    speed: null,
+    agent_type: null,
+}
+let GUI_functions = {
+    draw_shape: null,
+    upload_shape: null,
+    shape_selector: null,
+}
+
 let agents_num = 0;
 let total_step = 0; // steps of iteration
 let horizon_line = [], vertical_line = [];
@@ -121,8 +135,11 @@ let poses_data = [];// poses_data[i][2*r]:x of agent r in i-th step
 
 // 3d场景离页面边缘距离
 let window_margin = 50;
+let right_block = 300;
+let bottom_block = 100;
 
 let done = false;
+let paused = false;
 // ================================================================
 
 // ========================main====================================
@@ -192,12 +209,12 @@ function create_GUI() {
     // 自定义形状设置
     let custom_folder = gui.addFolder("Custom Shape Setting");
     document.getElementById("GUI").appendChild(gui.domElement);
-    animation.add(params, "speed", 1, 10, 1).name('Speed');
-    animation.add(params, "agent_type").name('Agent type').options(agent_types);
+    GUI_domElement.speed = animation.add(params, "speed", 1, 10, 1).name('Speed');
+    GUI_domElement.agent_type = animation.add(params, "agent_type").name('Agent type').options(agent_types);
     animation.add(params.show_grid, "ShowGrid").name('Show Grid');
-    custom_folder.add(params, 'custom_pad').name('Draw a shape');
-    custom_folder.add(params, 'image_upload_pad').name('Upload a pic')
-    gui.add(params, "stored_shape_pad").name("Select a shape");
+    GUI_functions.draw_shape = custom_folder.add(params, 'custom_pad').name('Draw a shape');
+    GUI_functions.upload_shape = custom_folder.add(params, 'image_upload_pad').name('Upload a pic')
+    GUI_functions.shape_selector = gui.add(params, "stored_shape_pad").name("Select a shape");
 }
 
 // compute the shape of pattern to draw the outline
@@ -436,10 +453,10 @@ function init() {
     build_outline_wall();
 
     scene.background = new THREE.Color(0xe0e0e0);
-    camera = new THREE.PerspectiveCamera(75, (window.innerWidth - 2 * window_margin) / (window.innerHeight - 2 * window_margin), 0.1, 1000);
+    camera = new THREE.PerspectiveCamera(75, (window.innerWidth - 2 * window_margin - right_block) / (window.innerHeight - 2 * window_margin - bottom_block), 0.1, 1000);
 
     console.log(window.innerHeight - 2 * window_margin, window.innerWidth - 2 * window_margin);
-    renderer.setSize(window.innerWidth - 2 * window_margin, window.innerHeight - 2 * window_margin);
+    renderer.setSize(window.innerWidth - 2 * window_margin - right_block, window.innerHeight - 2 * window_margin - bottom_block);
     renderer.sortObjects = false;
     document.getElementById("threeJS").appendChild(renderer.domElement);
 
@@ -486,10 +503,10 @@ function init() {
 
     window.onresize = function () {
 
-        camera.aspect = (window.innerWidth - 2 * window_margin) / (window.innerHeight - 2 * window_margin);
+        camera.aspect = (window.innerWidth - 2 * window_margin - right_block) / (window.innerHeight - 2 * window_margin - bottom_block);
         camera.updateProjectionMatrix();
 
-        renderer.setSize(window.innerWidth - 2 * window_margin, window.innerHeight - 2 * window_margin);
+        renderer.setSize(window.innerWidth - 2 * window_margin - right_block, window.innerHeight - 2 * window_margin - bottom_block);
 
     };
 }
@@ -674,6 +691,7 @@ function agent_move_model() {
                     GLB_LOAD.walks[i].stop();
                     let rot = dirX2rotation(0, -1);
                     GLB_LOAD.set_rotation(i, rot);
+                    GLB_LOAD.mixers[i].setTime = 0;
                 }
             }
         }
@@ -701,6 +719,7 @@ function agent_move_model() {
                 GLB_LOAD.walks[i].stop();
                 let rot = dirX2rotation(0, -1);
                 GLB_LOAD.set_rotation(i, rot);
+                GLB_LOAD.mixers[i].setTime = 0;
             }
 
         }
@@ -731,6 +750,14 @@ let animate = function () {
     if (!done && poses_data.length < mov_para.step + 2) {
         return;
     }
+
+    controls.update();
+
+    if (paused) {
+        renderer.render(scene, camera);
+        return;
+    }
+
     if (agent_id >= 2 && !GLB_LOAD.all_ready(shape_config.agent_num)) {
         console.log(agent_types[agent_id])
         return;
@@ -760,7 +787,6 @@ let animate = function () {
     if (agent_id >= 2) {
         GLB_LOAD.update_all(1 / fp_mov);
     }
-    controls.update();
 
     renderer.render(scene, camera);
 };
@@ -884,4 +910,163 @@ document.getElementById("stored_shape_apply").addEventListener("click", function
 
 function data_file_path_generate(file) {
     return "../data/" + file;
+}
+
+// 阻止用户在暂停时改变shape、动画参数等
+function blockEvent(event) {
+    event.stopPropagation();
+}
+
+// 按下暂停按钮
+document.getElementById("pause").addEventListener("click", function () {
+    if (paused === false) {
+        this.src = "img/start.png";
+        paused = true;
+        document.getElementById("last_step").className = "image_btn";
+        document.getElementById("next_step").className = "image_btn";
+        for (let ele in GUI_domElement) {
+            let obj = GUI_domElement[ele];
+            obj.domElement.style.pointerEvents = "none";
+            obj.domElement.style.opacity = .5;
+        }
+        for (let ele in GUI_functions) {
+            let obj = GUI_functions[ele];
+            obj.domElement.addEventListener("click", blockEvent, true);
+        }
+    } else {
+        this.src = "img/pause.png";
+        paused = false;
+        document.getElementById("last_step").className = "image_btn_inactive";
+        document.getElementById("next_step").className = "image_btn_inactive";
+        for (let ele in GUI_domElement) {
+            let obj = GUI_domElement[ele];
+            obj.domElement.style.pointerEvents = "auto";
+            obj.domElement.style.opacity = 1;
+        }
+        for (let ele in GUI_functions) {
+            let obj = GUI_functions[ele];
+            obj.domElement.removeEventListener("click", blockEvent, true);
+        }
+    }
+
+})
+
+// 按下上一步按钮
+document.getElementById("last_step").addEventListener("click", function () {
+    if (paused === false) return;
+    if (mov_para.step === 0 && mov_para.frame === 0) return;// 已经到第一帧，直接返回
+    let slice = fp_mov / slipt_of_step;
+    let slipt_step = Math.floor(mov_para.frame / slice);
+    if (slipt_step * slice === mov_para.frame)
+        slipt_step -= 1;
+    let minus = mov_para.frame - slipt_step * slice;
+    if (slipt_step < 0) {
+        slipt_step += slipt_of_step;
+        mov_para.step--;
+    }
+    mov_para.frame = slipt_step * slice;
+    step_change_helper(slipt_step, minus);
+
+    // 将mov_para设置为对应的正确值
+    if (mov_para.step >= total_step - 1 || mov_para.step < 0) {
+        if (mov_para.step < 0) {
+            mov_para.step = 0;
+            mov_para.frame = 0;
+        } else {
+            mov_para.step = total_step - 1;
+            mov_para.frame = 0;
+        }
+    }
+})
+
+// 按下下一步按钮
+document.getElementById("next_step").addEventListener("click", function () {
+    if (paused === false) return;
+    if (mov_para.step >= total_step - 1 && mov_para.frame === 0) return;// 已经到最后一帧，直接返回
+    let slice = fp_mov / slipt_of_step;
+    let slipt_step = Math.ceil(mov_para.frame / slice);
+    if (slipt_step * slice === mov_para.frame)
+        slipt_step += 1;
+    let minus = mov_para.frame - slipt_step * slice;
+    if (slipt_step >= slipt_of_step) {
+        slipt_step -= slipt_of_step;
+        mov_para.step++;
+    }
+    mov_para.frame = slipt_step * slice;
+    step_change_helper(slipt_step, minus);
+
+    // 将mov_para设置为对应的正确值
+    if (mov_para.step >= total_step - 1 || mov_para.step < 0) {
+        if (mov_para.step < 0) {
+            mov_para.step = 0;
+            mov_para.frame = 0;
+        } else {
+            mov_para.step = total_step - 1;
+            mov_para.frame = 0;
+        }
+    }
+})
+
+function step_change_helper(slipt_step, minus) {
+    let step;
+    // 边界条件处理
+    if (mov_para.step >= total_step - 1 || mov_para.step < 0) {
+        if (mov_para.step < 0) step = 0;
+        else step = mov_para.step;
+    }
+    for (let i = 0; i < shape_config.agent_num; i++) {
+        if (mov_para.step >= total_step - 1 || mov_para.step < 0) { // 边界条件处理
+            if (agent_types[agent_id] === "cube") {
+                objects[i].position.x = parseFloat(poses_data[step][2 * i]) - shape_config.grid_w / 2 + 0.5;
+                objects[i].position.y = parseFloat(poses_data[step][2 * i + 1]) - shape_config.grid_h / 2 + 0.5;
+            } else if (agent_types[agent_id] === "sphere") {
+                groups[i].position.x = parseFloat(poses_data[step][2 * i]) - shape_config.grid_w / 2 + 0.5;
+                groups[i].position.y = parseFloat(poses_data[step][2 * i + 1]) - shape_config.grid_h / 2 + 0.5;
+                if (objects[i].position.z) {
+                    objects[i].position.z = ori_height;
+                    shadows[i].material.opacity = 0.8;
+                }
+            } else {
+                GLB_LOAD.models[i].position.x = parseFloat(poses_data[step][2 * i]) - shape_config.grid_w / 2 + 0.5;
+                GLB_LOAD.models[i].position.y = parseFloat(poses_data[step][2 * i + 1]) - shape_config.grid_h / 2 + 0.5;
+                GLB_LOAD.set_rotation(i, dirX2rotation(0, -1));
+                GLB_LOAD.mixers[i].setTime = 0;
+            }
+            continue;
+        }
+        mov_para.dirX = poses_data[mov_para.step + 1][2 * i] - poses_data[mov_para.step][2 * i];
+        mov_para.dirY = poses_data[mov_para.step + 1][2 * i + 1] - poses_data[mov_para.step][2 * i + 1];
+        if (agent_types[agent_id] === "cube") {
+            objects[i].position.x = (poses_data[mov_para.step + 1][2 * i] - poses_data[mov_para.step][2 * i]) * slipt_step / slipt_of_step +
+                parseFloat(poses_data[mov_para.step][2 * i]) - shape_config.grid_w / 2 + 0.5;
+            objects[i].position.y = (poses_data[mov_para.step + 1][2 * i + 1] - poses_data[mov_para.step][2 * i + 1]) * slipt_step / slipt_of_step +
+                parseFloat(poses_data[mov_para.step][2 * i + 1]) - shape_config.grid_h / 2 + 0.5;
+        } else if (agent_types[agent_id] === "sphere") {
+            groups[i].position.x = (poses_data[mov_para.step + 1][2 * i] - poses_data[mov_para.step][2 * i]) * slipt_step / slipt_of_step +
+                parseFloat(poses_data[mov_para.step][2 * i]) - shape_config.grid_w / 2 + 0.5;
+            groups[i].position.y = (poses_data[mov_para.step + 1][2 * i + 1] - poses_data[mov_para.step][2 * i + 1]) * slipt_step / slipt_of_step +
+                parseFloat(poses_data[mov_para.step][2 * i + 1]) - shape_config.grid_h / 2 + 0.5;
+            if (mov_para.dirX || mov_para.dirY) {
+                let offset = Math.sin(Math.PI / fp_mov * mov_para.frame);
+                objects[i].position.z = 1.5 * offset + ori_height;
+                shadows[i].material.opacity = THREE.MathUtils.lerp(0.8, .15, offset);
+            } else if (objects[i].position.z) { // 如果这一步object没动，那么它必定在平面上
+                objects[i].position.z = ori_height;
+                shadows[i].material.opacity = 0.8;
+            }
+        } else {
+            console.log("mixer", GLB_LOAD.mixers[i].time, GLB_LOAD.mixers[i].time.toFixed(0), Math.abs(GLB_LOAD.mixers[i].time - GLB_LOAD.mixers[i].time.toFixed(0)) > 0.000001);
+            GLB_LOAD.models[i].position.x = (poses_data[mov_para.step + 1][2 * i] - poses_data[mov_para.step][2 * i]) * slipt_step / slipt_of_step +
+                parseFloat(poses_data[mov_para.step][2 * i]) - shape_config.grid_w / 2 + 0.5;
+            GLB_LOAD.models[i].position.y = (poses_data[mov_para.step + 1][2 * i + 1] - poses_data[mov_para.step][2 * i + 1]) * slipt_step / slipt_of_step +
+                parseFloat(poses_data[mov_para.step][2 * i + 1]) - shape_config.grid_h / 2 + 0.5;
+            if (mov_para.dirX || mov_para.dirY) {
+                GLB_LOAD.set_rotation(i, dirX2rotation(mov_para.dirX, mov_para.dirY));
+                GLB_LOAD.mixers[i].update(-minus / fp_mov);
+            } else {
+                GLB_LOAD.set_rotation(i, dirX2rotation(0, -1));
+                GLB_LOAD.mixers[i].setTime = 0;
+            }
+        }
+    }
 }

@@ -34,10 +34,19 @@
 	<!-- <script src="./js/downscale/downsample.js"></script>
 	<script src="./js/downscale/downscale.js"></script> -->
 	<script type="module" src="./js/three-D-demo.js"></script>
-	<div class="center_block">
+	<div class="center_block" style="float:left;">
 		<div id="threeJS">
 			<div id="GUI"></div>
 		</div>
+	</div>
+	<div style="float: left;width: 300px;">
+		11111
+	</div>
+	<div style="display: block;height:100px;bottom: 0px;position: absolute;width: 100%;">
+		<img src="img/last_step.png" style="margin-left: 33%;width: 50px;height: 50px;" class="image_btn_inactive"
+			id="last_step">
+		<img src="img/pause.png" style="width: 50px;height: 50px;" class="image_btn" id="pause">
+		<img src="img/next_step.png" style="width: 50px;height: 50px;" class="image_btn_inactive" id="next_step">
 	</div>
 	<!--自定义形状弹窗-->
 	<div class="custom_bg" id="custom_shape_popup">
@@ -115,7 +124,7 @@
 	<!--形状选择弹窗-->
 	<div class="custom_bg" id="predefined_shape_selector">
 		<span class="helper"></span>
-		<div>
+		<div style="width: 70%;max-width: 800px;">
 			<div class="popupCloseButton" id="stored_shape_close">&times;</div>
 			<div class="custom_row">
 				<label class="custom_title">Shapes</label>

@@ -25,7 +25,7 @@ function load_glb(idx, file, scene, position, scale, rotation, animation_idx) {
         mixer = new THREE.AnimationMixer(model);
         walk = mixer.clipAction(gltf.animations[animation_idx]);
         // walk.setLoop(THREE.LoopOnce);
-        walk.clampWhenFinished = true;
+        // walk.clampWhenFinished = true;
         walk.setDuration(10)
 
         models.push(model);

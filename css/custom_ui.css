@@ -121,3 +121,10 @@
     height: 20px;
     font-size: 17px;
 }
+
+.image_btn{
+    cursor: pointer;
+}
+.image_btn_inactive{
+    opacity: 30%;
+}
