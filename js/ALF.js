@@ -44,9 +44,9 @@ function calculate_lf(grid, pose, step, a_num) {
     }
 
     let step_r = [], step_b = [];
-    for (let i = grid_h - 1; i >= 0; i--) {
+    for (let j = 0; j < grid_w; j++) {
         let arr_r = [], arr_b = [];
-        for (let j = 0; j < grid_w; j++) {
+        for (let i = grid_h - 1; i >= 0; i--) {
             let this_point = [i, j];
             // 计算红色光场
             let red_l = 0;
