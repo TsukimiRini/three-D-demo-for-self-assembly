@@ -6,6 +6,13 @@ let b_lf = [];
 let hm_r = document.getElementById("heatmap_r");
 let hm_b = document.getElementById("heatmap_b");
 
+function clear_ALF() {
+    r_lf.length = 0;
+    b_lf.length = 0;
+    first_time_b = true;
+    first_time_r = true;
+}
+
 // 传入grid数据和单步的pose数据。step标识当前步数。
 function calculate_lf(grid, pose, step, a_num) {
     let grid_w = grid[0].length, grid_h = grid.length;
@@ -28,7 +35,7 @@ function calculate_lf(grid, pose, step, a_num) {
     // o_t
     for (let i = 0; i < a_num; i++) {
         let x = pose[2 * i], y = pose[2 * i + 1];
-        if (grid[x][y] != 1) { // 在shape之外
+        if (parseInt(grid[grid_h - y - 1][x]) !== 1) { // 在shape之外
             o_t.push([parseInt(x), grid_h - y - 1]);
         }
         agent_map[grid_h - y - 1][x] = 1;
@@ -184,7 +191,7 @@ function drawHeatMap(id, heat_data, grid_w, grid_h) {
             width: 400,
             height: 300,
             margin: {
-                l: 25,
+                l: 45,
                 r: 20,
                 t: 20,
                 b: 20
@@ -229,4 +236,4 @@ function largestOfFour(arr) {
     var newArray = arr.join(",").split(",");
     return Math.max.apply({}, newArray);
 }
-export { calculate_lf, drawHeatMap };
+export { calculate_lf, drawHeatMap, clear_ALF };

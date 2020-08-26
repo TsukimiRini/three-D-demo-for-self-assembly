@@ -9,7 +9,7 @@ import * as STORED_SHAPE_PAD from '../js/stored_shape_module.js';
 import { stored_para } from "../js/shape_para.js";
 import * as GLB_LOAD from "../js/import_glb_mods.js";
 import { generateGrid, showImage } from "../js/canvas_grid_genration.js";
-import { calculate_lf, drawHeatMap } from "../js/ALF.js";
+import { calculate_lf, drawHeatMap, clear_ALF } from "../js/ALF.js";
 
 // ======================parameter===============================
 // config
@@ -560,6 +560,7 @@ function create_plane() {
 
 // 重置grid场景，重置shape
 function reset_shape() {
+    clear_ALF();
     create_grid();
     create_plane();
     outline_grid();
@@ -891,6 +892,7 @@ document.getElementById("stored_shape_apply").addEventListener("click", function
     // 检查是否选中一种grid规模
     if (!has_checked) {
         alert("Please set the grid size!");
+        return;
     } else {
         STORED_SHAPE_PAD.hide_stored_shape();
     }
