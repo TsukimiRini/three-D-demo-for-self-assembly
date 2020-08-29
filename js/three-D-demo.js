@@ -1,7 +1,13 @@
 "use strict"
-import * as THREE from '../three.js-master/build/three.module.js';
+// import * as THREE from '../three.js-master/build/three.module.js';
+// import * as Mesh from '../js/THREE.MeshLine.js';
 import { OrbitControls } from '../three.js-master/examples/jsm/controls/OrbitControls.js';
 import { GUI } from '../three.js-master/examples/jsm/libs/dat.gui.module.js';
+import { EffectComposer } from '../three.js-master/examples/jsm/postprocessing/EffectComposer.js';
+import { OutlinePass } from '../three.js-master/examples/jsm/postprocessing/OutlinePass.js';
+import { RenderPass } from '../three.js-master/examples/jsm/postprocessing/RenderPass.js';
+import { ShaderPass } from '../three.js-master/examples/jsm/postprocessing/ShaderPass.js';
+import { FXAAShader } from '../three.js-master/examples/jsm/shaders/FXAAShader.js';
 
 import { parse_grid, parse_file_name, parse_poses } from '../js/parse-module.js';
 import * as CUSTOM_PAD from '../js/custom_module.js';
@@ -106,11 +112,18 @@ let params = {
 
 // global
 let scene = new THREE.Scene();
+let line_scene = new THREE.Scene();
 let renderer = new THREE.WebGLRenderer();
+renderer.autoClear = false;
 let controls = null;
 let grid = null;
 let plane = null;
 let camera = null;
+
+let composer, outlinePass;
+let raycaster = new THREE.Raycaster(); // 鼠标指针射线
+let mouse = new THREE.Vector2(); // 鼠标坐标
+let hover_obj = [];
 
 // gui element
 let GUI_domElement = {
@@ -131,6 +144,9 @@ let objects = [];
 let shadows = [];
 let groups = [];
 let walls = [];
+let orbits = [];
+let meshline_orbits = [];
+let geometry_orbits = [];
 
 let poses_data = [];// poses_data[i][2*r]:x of agent r in i-th step
 
@@ -264,7 +280,6 @@ function outline_grid() {
         }
         last_up = -1, last_down = -1, start_node = -1, cur_node = -1;
     }
-    console.log(vertical_line)
 }
 
 // add the outline to the scene
@@ -350,6 +365,22 @@ function build_outline_wall() {
     }
 }
 
+// 创建有起始点坐标的mesh line
+function create_mesh_line(material, x, y) {
+    var geometry = new THREE.Geometry();
+    geometry.vertices.push(new THREE.Vector3(x, y, 0.1));
+
+    var line = new MeshLine();
+    line.setGeometry(geometry);
+    var mesh = new THREE.Mesh(line.geometry, material);
+    mesh.visible = false;
+    orbits.push(mesh);
+    geometry_orbits.push(geometry);
+    meshline_orbits.push(line);
+
+    line_scene.add(mesh);
+}
+
 //==================agent generation=========================
 function cube_generate() {
     // a cube
@@ -360,6 +391,7 @@ function cube_generate() {
         shininess: 5,
         specular: 0xdb504b
     });
+    var line_material = new MeshLineMaterial({ color: new THREE.Color(0x036fa0), sizeAttenuation: true, lineWidth: 0.1, opacity: 0.7, transparent: true });
     for (let i = 0; i < shape_config.agent_num; i++) {
         let geometry = new THREE.BoxGeometry(0.9, 0.9, 1);
         let cube = new THREE.Mesh(geometry, material);
@@ -369,6 +401,8 @@ function cube_generate() {
         cube.position.z = 0.5;
         scene.add(cube);
         objects.push(cube);
+
+        create_mesh_line(line_material, cube.position.x, cube.position.y);
     }
 
     // 参数重置
@@ -385,6 +419,7 @@ function sphere_generate() {
         polygonOffsetUnits: 2,
     });
 
+    var line_material = new MeshLineMaterial({ color: new THREE.Color(0x036fa0), sizeAttenuation: true, lineWidth: 0.1, opacity: 0.7, transparent: true });
     for (let i = 0; i < shape_config.agent_num; i++) {
         // create group for the integrity of sphere and shadow
         let base = new THREE.Object3D(); // sphere & shadow
@@ -419,7 +454,11 @@ function sphere_generate() {
         groups.push(base);
         shadows.push(shadowMesh);
         objects.push(sphere);
+
+        create_mesh_line(line_material, base.position.x, base.position.y);
     }
+
+    // console.log(geometry_orbits)
 
     // 参数重置
     mov_para.step = 0;
@@ -430,6 +469,7 @@ function sphere_generate() {
 
 function model_generate() {
     let mod_name = agent_types[agent_id];
+    var material = new MeshLineMaterial({ color: new THREE.Color(0x036fa0), sizeAttenuation: true, lineWidth: 0.1, opacity: 0.7, transparent: true });
     for (let i = 0; i < shape_config.agent_num; i++) {
         let position = {
             x: poses_data[0][2 * i] - shape_config.grid_w / 2 + 0.5,
@@ -437,6 +477,8 @@ function model_generate() {
             z: 0.01
         }
         GLB_LOAD.load_glb(i, mod_file[mod_name], scene, position, scale_config[mod_name], init_rotation[mod_name], animation_idx[mod_name]);
+
+        create_mesh_line(material, position.x, position.y);
     }
 
     // 参数重置
@@ -504,14 +546,64 @@ function init() {
 
     camera.position.z = 20;
 
+    // 绘制描边效果
+    composer = new EffectComposer(renderer);
+
+    var renderPass = new RenderPass(scene, camera);
+    composer.addPass(renderPass);
+
+    outlinePass = new OutlinePass(new THREE.Vector2(window.innerWidth, window.innerHeight), scene, camera);
+    composer.addPass(outlinePass);
+
+    let effectFXAA = new ShaderPass(FXAAShader);
+    effectFXAA.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
+    composer.addPass(effectFXAA);
+
+    // 将描边加入鼠标移动事件
+    window.addEventListener('mousemove', onMouseMove, false);
+
+    // 浏览器resize事件
     window.onresize = function () {
 
         camera.aspect = (window.innerWidth - 2 * window_margin - right_block) / (window.innerHeight - 2 * window_margin - bottom_block);
         camera.updateProjectionMatrix();
 
         renderer.setSize(window.innerWidth - 2 * window_margin - right_block, window.innerHeight - 2 * window_margin - bottom_block);
+        composer.setSize(window.innerWidth - 2 * window_margin - right_block, window.innerHeight - 2 * window_margin - bottom_block);
 
     };
+}
+
+// 鼠标移动事件执行函数：判断是否在agent上停留
+function onMouseMove(evt) {
+    mouse.x = ((event.clientX - window_margin) / (window.innerWidth - 2 * window_margin - right_block)) * 2 - 1;
+    mouse.y = - ((event.clientY - window_margin) / (window.innerHeight - 2 * window_margin - bottom_block)) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    var intersects = raycaster.intersectObject(scene, true);
+
+    if (intersects.length > 0) {
+        // console.log(selectedObject)
+        if (agent_types[agent_id] === "cube" || agent_types[agent_id] === "sphere") {
+            for (let i = 0; i < intersects.length; i++) {
+                var selectedObject = intersects[i].object;
+                var idx = objects.indexOf(selectedObject);
+                if (idx >= 0) {
+                    for (let obj of hover_obj) {
+                        let obj_idx = objects.indexOf(obj);
+                        orbits[obj_idx].visible = false;
+                    }
+                    hover_obj = [];
+                    hover_obj.push(selectedObject)
+                    outlinePass.selectedObjects = hover_obj;
+                    orbits[idx].visible = true;
+                    break;
+                }
+            }
+        } else if (agent_types[agent_id] in ["slime", "man", "puppy"]) { // models
+
+        }
+    }
 }
 
 // 创建grid
@@ -576,6 +668,10 @@ function reset() {
         objects[i].position.y = y - shape_config.grid_h / 2 + 0.5;
         objects[i].position.x = x - shape_config.grid_w / 2 + 0.5;
         objects[i].position.z = ori_height;
+
+        // 重置轨迹
+        geometry_orbits[i].vertices.length = 0;
+        meshline_orbits[i].setGeometry(geometry_orbits[i]);
     }
     mov_para.dirX = 0;
     mov_para.dirY = 0;
@@ -590,6 +686,10 @@ function reset_group() {
         groups[i].position.y = y - shape_config.grid_h / 2 + 0.5;
         groups[i].position.x = x - shape_config.grid_w / 2 + 0.5;
         objects[i].position.z = ori_height;
+
+        // 重置轨迹
+        geometry_orbits[i].vertices.length = 0;
+        meshline_orbits[i].setGeometry(geometry_orbits[i]);
     }
     mov_para.dirX = 0;
     mov_para.dirY = 0;
@@ -606,6 +706,10 @@ function reset_model() {
         }
         GLB_LOAD.set_position(i, position);
         // GLB_LOAD.set_rotation(i, init_rotation.y);
+
+        // 重置轨迹
+        geometry_orbits[i].vertices.length = 0;
+        meshline_orbits[i].setGeometry(geometry_orbits[i]);
     }
     mov_para.dirX = 0;
     mov_para.dirY = 0;
@@ -640,6 +744,26 @@ function clear_agents_model() {
     GLB_LOAD.clear_storage();
 }
 
+function add_vertice_to_line(idx, x, y) {
+    let geo = geometry_orbits[idx];
+    let line = meshline_orbits[idx];
+    geo.vertices.push(new THREE.Vector3(x, y, 0.1));
+    line.setGeometry(geo);
+
+    // 更新轨迹object的结点
+    orbits[idx].geometry = line.geometry;
+}
+
+function remove_vertice_in_line(idx) {
+    let geo = geometry_orbits[idx];
+    let line = meshline_orbits[idx];
+    geo.vertices.pop();
+    line.setGeometry(geo);
+
+    // 更新轨迹object的结点
+    orbits[idx].geometry = line.geometry;
+}
+
 function agent_move_cube() {
     if (mov_para.step >= total_step - 1) {
         mov_para.frame++;
@@ -654,6 +778,11 @@ function agent_move_cube() {
         mov_para.dirY = poses_data[mov_para.step + 1][2 * i + 1] - poses_data[mov_para.step][2 * i + 1];
         objects[i].position.x += mov_para.dirX * per_mov;
         objects[i].position.y += mov_para.dirY * per_mov;
+
+        // 更新轨迹
+        if (mov_para.frame === 0) {
+            add_vertice_to_line(i, poses_data[mov_para.step][2 * i] - shape_config.grid_w / 2 + 0.5, poses_data[mov_para.step][2 * i + 1] - shape_config.grid_h / 2 + 0.5);
+        }
     }
     mov_para.frame = (mov_para.frame + 1) % fp_mov;
     if (mov_para.frame === 0) {
@@ -675,6 +804,12 @@ function agent_move_sphere() {
         mov_para.dirY = poses_data[mov_para.step + 1][2 * i + 1] - poses_data[mov_para.step][2 * i + 1];
         groups[i].position.x += mov_para.dirX * per_mov;
         groups[i].position.y += mov_para.dirY * per_mov;
+
+        // 更新轨迹
+        if (mov_para.frame === 0) {
+            add_vertice_to_line(i, poses_data[mov_para.step][2 * i] - shape_config.grid_w / 2 + 0.5, poses_data[mov_para.step][2 * i + 1] - shape_config.grid_h / 2 + 0.5);
+        }
+
         if (mov_para.dirX || mov_para.dirY) {
             let offset = Math.sin(Math.PI / fp_mov * mov_para.frame);
             objects[i].position.z = 1.5 * offset + ori_height;
@@ -729,6 +864,10 @@ function agent_move_model() {
                 GLB_LOAD.mixers[i].setTime = 0;
             }
 
+            // 更新轨迹
+            if (mov_para.frame === 0) {
+                add_vertice_to_line(i, poses_data[mov_para.step][2 * i] - shape_config.grid_w / 2 + 0.5, poses_data[mov_para.step][2 * i + 1] - shape_config.grid_h / 2 + 0.5);
+            }
         }
     }
 
@@ -742,6 +881,7 @@ function repaint_agent() {
     console.log("repaint")
     clear_agents();
     clear_agents_model();
+    clear_orbits();
     agent_id = agent_types.indexOf(params.agent_type);
     if (params.agent_type === 'cube') {
         cube_generate();
@@ -752,6 +892,16 @@ function repaint_agent() {
     }
 }
 
+// 清空所有的轨迹数据
+function clear_orbits() {
+    for (let obj of orbits) {
+        scene.remove(obj);
+    }
+
+    orbits.length = 0;
+    geometry_orbits.length = 0;
+}
+
 let animate = function () {
     requestAnimationFrame(animate);
     if (!done && poses_data.length < mov_para.step + 2) {
@@ -759,9 +909,11 @@ let animate = function () {
     }
 
     controls.update();
+    composer.render();
+    renderer.clearDepth();
+    renderer.render(line_scene, camera);
 
     if (paused) {
-        renderer.render(scene, camera);
         return;
     }
 
@@ -803,14 +955,12 @@ let animate = function () {
         GLB_LOAD.update_all(1 / fp_mov);
     }
 
-    renderer.render(scene, camera);
 };
 
 animate();
 
 function arrTrans(num, arr) {
     let len = arr.length;
-    console.log(len);
     const newArr = [];
     for (let i = 0; i < len; i += num) {
         newArr.push(arr.slice(i, i + num));
@@ -841,7 +991,6 @@ document.getElementById("apply").addEventListener("click", function () {
         MessagePurpose: "getPoseData", width: shape_config.grid_w, height: shape_config.grid_h, shape_num: shape_config.shape_num,
         agent_num: shape_config.agent_num, grid_data: grid_data
     });
-    console.log(grid_data);
     CUSTOM_PAD.hide_custom_shape_popup();
 })
 
@@ -977,6 +1126,9 @@ document.getElementById("last_step").addEventListener("click", function () {
         slipt_step -= 1;
     let minus = mov_para.frame - slipt_step * slice;
     if (slipt_step < 0) {
+        for (let i = 0; i < shape_config.agent_num; i++) {
+            remove_vertice_in_line(i);
+        }
         slipt_step += slipt_of_step;
         mov_para.step--;
     }
@@ -1008,6 +1160,9 @@ document.getElementById("next_step").addEventListener("click", function () {
     if (slipt_step >= slipt_of_step) {
         slipt_step -= slipt_of_step;
         mov_para.step++;
+        for (let i = 0; i < shape_config.agent_num; i++) {
+            add_vertice_to_line(i, parseFloat(poses_data[mov_para.step][2 * i]) - shape_config.grid_w / 2 + 0.5, parseFloat(poses_data[mov_para.step][2 * i + 1]) - shape_config.grid_h / 2 + 0.5);
+        }
     }
     mov_para.frame = slipt_step * slice;
     step_change_helper(slipt_step, minus);
@@ -1074,7 +1229,6 @@ function step_change_helper(slipt_step, minus) {
                 shadows[i].material.opacity = 0.8;
             }
         } else {
-            console.log("mixer", GLB_LOAD.mixers[i].time, GLB_LOAD.mixers[i].time.toFixed(0), Math.abs(GLB_LOAD.mixers[i].time - GLB_LOAD.mixers[i].time.toFixed(0)) > 0.000001);
             GLB_LOAD.models[i].position.x = (poses_data[mov_para.step + 1][2 * i] - poses_data[mov_para.step][2 * i]) * slipt_step / slipt_of_step +
                 parseFloat(poses_data[mov_para.step][2 * i]) - shape_config.grid_w / 2 + 0.5;
             GLB_LOAD.models[i].position.y = (poses_data[mov_para.step + 1][2 * i + 1] - poses_data[mov_para.step][2 * i + 1]) * slipt_step / slipt_of_step +
@@ -1098,38 +1252,3 @@ function draw_ALF() {
     drawHeatMap("heatmap_r", heat_data.res_r, shape_config.grid_w, shape_config.grid_h);
     drawHeatMap("heatmap_b", heat_data.res_b, shape_config.grid_w, shape_config.grid_h);
 }
-
-// // 用以绘制热力图的web worker创建
-// function create_draw_worker() {
-//     let web_worker = new Worker("../js/draw_worker.js");
-//     web_worker.onerror = function (evt) { console.log(`Error from Web Worker: ${evt.message}`); }
-//     web_worker.onmessage = draw_worker_receive_msg;
-//     return web_worker;
-// }
-
-// function draw_worker_receive_msg(evt) {
-//     let obj = evt.data;
-//     if (obj.cmd === "ready") {
-//         console.log("ready!")
-//         draw_heat_map_completed = true;
-//     }
-// }
-
-// 用以绘制热力图的web worker创建
-// function create_timer_worker() {
-//     let web_worker = new Worker("../js/timer_worker.js");
-//     web_worker.onerror = function (evt) { console.log(`Error from Web Worker: ${evt.message}`); }
-//     web_worker.onmessage = timer_worker_receive_msg;
-//     return web_worker;
-// }
-
-// function timer_worker_receive_msg(evt) {
-//     let obj = evt.data;
-//     if (obj.cmd === "ready") {
-//         console.log("ready!")
-//         // 计算热力图
-//         let heat_data = calculate_lf(grid_data, poses_data[mov_para.step], mov_para.step, shape_config.agent_num);
-//         drawHeatMap("heatmap_r", heat_data.res_r, shape_config.grid_w, shape_config.grid_h);
-//         drawHeatMap("heatmap_b", heat_data.res_b, shape_config.grid_w, shape_config.grid_h);
-//     }
-// }

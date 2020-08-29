@@ -39,3 +39,4 @@ js/scale.min.js
 Chart.*
 js/plotly-latest.min.js
 js/draw_worker.js
+js/three.min.js
