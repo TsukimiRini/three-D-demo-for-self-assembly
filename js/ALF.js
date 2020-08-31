@@ -187,6 +187,8 @@ function drawHeatMap(id, heat_data, grid_w, grid_h) {
             showscale: true,
         }];
 
+        let xtick = Math.floor(grid_w / 20), ytick = Math.floor(grid_h / 20);
+
         var layout = {
             // annotations: [],
             width: 400,
@@ -200,15 +202,15 @@ function drawHeatMap(id, heat_data, grid_w, grid_h) {
             xaxis: {
                 autotick: false,
                 tick0: 0,
-                dtick: 1,
+                dtick: xtick,
             },
             yaxis: {
                 autotick: false,
                 tick0: 0,
-                dtick: 1,
+                dtick: ytick,
             },
             title: {
-                text:title,
+                text: title,
 
             }
         };
