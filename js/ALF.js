@@ -152,16 +152,19 @@ function drawHeatMap(id, heat_data, grid_w, grid_h) {
     // }
     if (first_time_r || first_time_b) {
         var colorscaleValue;
+        var title;
         if (id === "heatmap_r") {
             colorscaleValue = [
                 [0, '#000000'],
                 [1, '#f00']
             ];
+            title = "red light intensity(*1000)";
         } else if (id === "heatmap_b") {
             colorscaleValue = [
                 [0, '#000000'],
                 [1, '#0000ff']
             ];
+            title = "blue light intensity(*1000)";
         } else {
             throw ("invalid id");
         }
@@ -182,8 +185,6 @@ function drawHeatMap(id, heat_data, grid_w, grid_h) {
             type: 'heatmap',
             colorscale: colorscaleValue,
             showscale: true,
-            // zmax: 1,
-            // zmin: 0
         }];
 
         var layout = {
@@ -193,8 +194,22 @@ function drawHeatMap(id, heat_data, grid_w, grid_h) {
             margin: {
                 l: 45,
                 r: 20,
-                t: 20,
-                b: 20
+                t: 30,
+                b: 30
+            },
+            xaxis: {
+                autotick: false,
+                tick0: 0,
+                dtick: 1,
+            },
+            yaxis: {
+                autotick: false,
+                tick0: 0,
+                dtick: 1,
+            },
+            title: {
+                text:title,
+
             }
         };
         if (first_time_r && id === "heatmap_r") {
