@@ -151,7 +151,7 @@ let poses_data = [];// poses_data[i][2*r]:x of agent r in i-th step
 
 // 3d场景离页面边缘距离
 let window_margin = 50;
-let right_block = 400;
+let right_block = 0;
 let bottom_block = 100;
 
 let done = false;
@@ -566,15 +566,16 @@ function init() {
     window.addEventListener('mousemove', onMouseMove, false);
 
     // 浏览器resize事件
-    window.onresize = function () {
+    window.onresize = resize_window;
+}
 
-        camera.aspect = (window.innerWidth - 2 * window_margin - right_block) / (window.innerHeight - 2 * window_margin - bottom_block);
-        camera.updateProjectionMatrix();
+// resize事件函数
+function resize_window() {
+    camera.aspect = (window.innerWidth - 2 * window_margin - right_block) / (window.innerHeight - 2 * window_margin - bottom_block);
+    camera.updateProjectionMatrix();
 
-        renderer.setSize(window.innerWidth - 2 * window_margin - right_block, window.innerHeight - 2 * window_margin - bottom_block);
-        composer.setSize(window.innerWidth - 2 * window_margin - right_block, window.innerHeight - 2 * window_margin - bottom_block);
-
-    };
+    renderer.setSize(window.innerWidth - 2 * window_margin - right_block, window.innerHeight - 2 * window_margin - bottom_block);
+    composer.setSize(window.innerWidth - 2 * window_margin - right_block, window.innerHeight - 2 * window_margin - bottom_block);
 }
 
 // 鼠标移动事件执行函数：判断是否在agent上停留
@@ -971,22 +972,13 @@ let animate = function () {
         return;
     }
 
-    // if (!done) {
-    //     if (poses_data.length >= 2) done = true;
-    //     return;
-    // }
     // update the speed of agents
     if (mov_para.frame === 0) {
-        // if (draw_heat_map_completed === false) {
-        //     return;
-        // }
         fp_mov = (13 - params.speed) * 10;
         per_mov = 1 / fp_mov;
 
-        draw_ALF();
-        // timer_worker.postMessage({
-        //     MessagePurpose: "timer"
-        // })
+        // 不渲染热力图，但提前计算数据以提高效率
+        calculate_lf(grid_data, poses_data[mov_para.step], mov_para.step, shape_config.agent_num);
     }
     if (params.agent_type !== agent_types[agent_id]) {
         repaint_agent();
@@ -1134,6 +1126,13 @@ function blockEvent(event) {
 // 按下暂停按钮
 document.getElementById("pause").addEventListener("click", function () {
     if (paused === false) {
+        // 显示热力图
+        draw_ALF();
+        right_block = 400;
+        resize_window();
+        document.getElementById("heatmap_r").style.display="block";
+        document.getElementById("heatmap_b").style.display="block";
+
         this.src = "img/start.png";
         paused = true;
         document.getElementById("last_step").className = "image_btn";
@@ -1148,6 +1147,12 @@ document.getElementById("pause").addEventListener("click", function () {
             obj.domElement.addEventListener("click", blockEvent, true);
         }
     } else {
+        // 隐藏热力图
+        document.getElementById("heatmap_r").style.display="none";
+        document.getElementById("heatmap_b").style.display="none";
+        right_block = 0;
+        resize_window();
+
         this.src = "img/pause.png";
         paused = false;
         document.getElementById("last_step").className = "image_btn_inactive";
