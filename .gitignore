@@ -23,6 +23,7 @@ test/unit/build
 **/node_modules
 
 three.js-master/
+three.js-r120/
 splide-2.4.8
 *.bat
 *.png
@@ -39,4 +40,4 @@ js/scale.min.js
 Chart.*
 js/plotly-latest.min.js
 js/draw_worker.js
-js/three.min.js
+js/three.js

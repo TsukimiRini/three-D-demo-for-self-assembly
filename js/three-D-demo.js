@@ -1,13 +1,12 @@
 "use strict"
-// import * as THREE from '../three.js-master/build/three.module.js';
-// import * as Mesh from '../js/THREE.MeshLine.js';
-import { OrbitControls } from '../three.js-master/examples/jsm/controls/OrbitControls.js';
-import { GUI } from '../three.js-master/examples/jsm/libs/dat.gui.module.js';
-import { EffectComposer } from '../three.js-master/examples/jsm/postprocessing/EffectComposer.js';
-import { OutlinePass } from '../three.js-master/examples/jsm/postprocessing/OutlinePass.js';
-import { RenderPass } from '../three.js-master/examples/jsm/postprocessing/RenderPass.js';
-import { ShaderPass } from '../three.js-master/examples/jsm/postprocessing/ShaderPass.js';
-import { FXAAShader } from '../three.js-master/examples/jsm/shaders/FXAAShader.js';
+
+import { OrbitControls } from '../three.js-r120/examples/jsm/controls/OrbitControls.js';
+import { GUI } from '../three.js-r120/examples/jsm/libs/dat.gui.module.js';
+import { EffectComposer } from '../three.js-r120/examples/jsm/postprocessing/EffectComposer.js';
+import { OutlinePass } from '../three.js-r120/examples/jsm/postprocessing/OutlinePass.js';
+import { RenderPass } from '../three.js-r120/examples/jsm/postprocessing/RenderPass.js';
+import { ShaderPass } from '../three.js-r120/examples/jsm/postprocessing/ShaderPass.js';
+import { FXAAShader } from '../three.js-r120/examples/jsm/shaders/FXAAShader.js';
 
 import { parse_grid, parse_file_name, parse_poses } from '../js/parse-module.js';
 import * as CUSTOM_PAD from '../js/custom_module.js';
@@ -120,7 +119,7 @@ let grid = null;
 let plane = null;
 let camera = null;
 
-let composer, outlinePass;
+let composer, outlinePass, outlinePass_models;
 let raycaster = new THREE.Raycaster(); // 鼠标指针射线
 let mouse = new THREE.Vector2(); // 鼠标坐标
 let hover_obj = [];
@@ -554,6 +553,10 @@ function init() {
 
     outlinePass = new OutlinePass(new THREE.Vector2(window.innerWidth, window.innerHeight), scene, camera);
     composer.addPass(outlinePass);
+    outlinePass_models = new OutlinePass(new THREE.Vector2(window.innerWidth, window.innerHeight), scene, camera);
+    outlinePass_models.depthMaterial.skinning = true;
+    outlinePass_models.prepareMaskMaterial.skinning = true;
+    composer.addPass(outlinePass_models);
 
     let effectFXAA = new ShaderPass(FXAAShader);
     effectFXAA.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
@@ -581,13 +584,15 @@ function onMouseMove(evt) {
 
     raycaster.setFromCamera(mouse, camera);
     var intersects = raycaster.intersectObject(scene, true);
+    var idx = -1;
 
     if (intersects.length > 0) {
         // console.log(selectedObject)
-        if (agent_types[agent_id] === "cube" || agent_types[agent_id] === "sphere") {
+        let agent_type = agent_types[agent_id];
+        if (agent_type === "cube" || agent_type === "sphere") {
             for (let i = 0; i < intersects.length; i++) {
                 var selectedObject = intersects[i].object;
-                var idx = objects.indexOf(selectedObject);
+                idx = objects.indexOf(selectedObject);
                 if (idx >= 0) {
                     for (let obj of hover_obj) {
                         let obj_idx = objects.indexOf(obj);
@@ -600,10 +605,47 @@ function onMouseMove(evt) {
                     break;
                 }
             }
-        } else if (agent_types[agent_id] in ["slime", "man", "puppy"]) { // models
-
+        } else if (["slime", "man", "puppy"].includes(agent_type)) { // models
+            for (let i = 0; i < intersects.length; i++) {
+                var selectedObject = intersects[i].object;
+                while (selectedObject.parent && selectedObject.name !== "Root Scene") {
+                    selectedObject = selectedObject.parent;
+                }
+                idx = GLB_LOAD.models.indexOf(selectedObject);
+                if (idx >= 0) {
+                    for (let obj of hover_obj) {
+                        let obj_idx = GLB_LOAD.models.indexOf(obj);
+                        orbits[obj_idx].visible = false;
+                    }
+                    hover_obj = [];
+                    hover_obj.push(selectedObject);
+                    outlinePass_models.selectedObjects = hover_obj;
+                    orbits[idx].visible = true;
+                    break;
+                }
+            }
         }
     }
+
+    hide_tooltip();
+    if (paused && idx >= 0) {
+        show_tooltip(event.clientX, event.clientY, idx);
+    }
+}
+
+// 悬停在agent上出现气泡
+function show_tooltip(x, y, id) {
+    var tooltip = document.getElementById("tooltip");
+    let pose_x = poses_data[mov_para.step][2 * id], pose_y = poses_data[mov_para.step][2 * id + 1];
+    tooltip.innerHTML = "agent " + id.toString() + ": " + pose_x.toString() + "," + pose_y.toString();
+    tooltip.style.top = (y - 50) + "px";
+    tooltip.style.left = (x - 20) + "px";
+    tooltip.style.visibility = "visible";
+}
+// 隐藏气泡
+function hide_tooltip() {
+    var tooltip = document.getElementById("tooltip");
+    tooltip.style.visibility = "hidden";
 }
 
 // 创建grid
@@ -718,6 +760,9 @@ function reset_model() {
 
 // 清除所有agent（切换agent模型使用）
 function clear_agents() {
+    // 清除高亮
+    outlinePass.selectedObjects = [];
+
     if (groups.length) {
         for (let group of groups)
             scene.remove(group);
@@ -738,6 +783,9 @@ function clear_agents() {
     shadows.length = 0;
 }
 function clear_agents_model() {
+    // 清除高亮
+    outlinePass_models.selectedObjects = [];
+
     for (let model of GLB_LOAD.models) {
         scene.remove(model);
     }
@@ -879,9 +927,9 @@ function agent_move_model() {
 
 function repaint_agent() {
     console.log("repaint")
+    clear_orbits();
     clear_agents();
     clear_agents_model();
-    clear_orbits();
     agent_id = agent_types.indexOf(params.agent_type);
     if (params.agent_type === 'cube') {
         cube_generate();
@@ -895,11 +943,12 @@ function repaint_agent() {
 // 清空所有的轨迹数据
 function clear_orbits() {
     for (let obj of orbits) {
-        scene.remove(obj);
+        line_scene.remove(obj);
     }
 
     orbits.length = 0;
     geometry_orbits.length = 0;
+    hover_obj = [];
 }
 
 let animate = function () {

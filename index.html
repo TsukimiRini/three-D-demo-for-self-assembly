@@ -22,6 +22,7 @@
 	</style>
 	<link rel="stylesheet" type="text/css" href="css/custom_ui.css">
 	<link rel="stylesheet" type="text/css" href="css/stored_shape_ui.css">
+	<link rel="stylesheet" type="text/css" href="css/tooltip.css">
 	<link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Inconsolata" />
 	<!-- Link to the file hosted on your server, -->
 	<link rel="stylesheet" href="./splide-2.4.8/dist/css/splide.min.css">
@@ -32,7 +33,7 @@
 	<script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
 	<script src='./js/plotly-latest.min.js'></script>
 	<script src="./js/scale.min.js"></script>
-	<script src="./js/three.min.js"></script>
+	<script src="./js/three.js"></script>
 	<script src="./js/THREE.MeshLine.js"></script>
 	<!-- <script src="./js/downscale/downsample.js"></script>
 	<script src="./js/downscale/downscale.js"></script> -->
@@ -42,16 +43,24 @@
 			<div id="GUI"></div>
 		</div>
 	</div>
+
+	<!-- 热力图 -->
 	<div style="float: left;width: 300px;">
 		<div id="heatmap_r" style="width: 420px;height: 300px;margin-top: 100px;"></div>
 		<div id="heatmap_b" style="width: 420px;height: 300px;"></div>
 	</div>
+
+	<!-- 流程控制栏 -->
 	<div style="display: block;height:100px;bottom: 0px;position: absolute;width: 100%;">
 		<img src="img/last_step.png" style="margin-left: 33%;width: 50px;height: 50px;" class="image_btn_inactive"
 			id="last_step">
 		<img src="img/pause.png" style="width: 50px;height: 50px;" class="image_btn" id="pause">
 		<img src="img/next_step.png" style="width: 50px;height: 50px;" class="image_btn_inactive" id="next_step">
 	</div>
+
+	<!-- 悬停气泡 -->
+	<div class="tooltip" id="tooltip"></div>
+
 	<!--自定义形状弹窗-->
 	<div class="custom_bg" id="custom_shape_popup">
 		<span class="helper"></span>
