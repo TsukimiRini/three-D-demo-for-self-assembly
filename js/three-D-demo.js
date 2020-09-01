@@ -183,6 +183,7 @@ init();
 reset_shape();
 done = true;
 create_GUI();
+adjust_icon_position();
 // =================================================================
 function init_shape_data() {
     shape_config.grid_w = grid_w, shape_config.grid_h = grid_h;
@@ -576,6 +577,8 @@ function resize_window() {
 
     renderer.setSize(window.innerWidth - 2 * window_margin - right_block, window.innerHeight - 2 * window_margin - bottom_block);
     composer.setSize(window.innerWidth - 2 * window_margin - right_block, window.innerHeight - 2 * window_margin - bottom_block);
+
+    adjust_icon_position();
 }
 
 // 鼠标移动事件执行函数：判断是否在agent上停留
@@ -1130,8 +1133,8 @@ document.getElementById("pause").addEventListener("click", function () {
         draw_ALF();
         right_block = 400;
         resize_window();
-        document.getElementById("heatmap_r").style.display="block";
-        document.getElementById("heatmap_b").style.display="block";
+        document.getElementById("heatmap_r").style.display = "block";
+        document.getElementById("heatmap_b").style.display = "block";
 
         this.src = "img/start.png";
         paused = true;
@@ -1148,8 +1151,8 @@ document.getElementById("pause").addEventListener("click", function () {
         }
     } else {
         // 隐藏热力图
-        document.getElementById("heatmap_r").style.display="none";
-        document.getElementById("heatmap_b").style.display="none";
+        document.getElementById("heatmap_r").style.display = "none";
+        document.getElementById("heatmap_b").style.display = "none";
         right_block = 0;
         resize_window();
 
@@ -1167,6 +1170,8 @@ document.getElementById("pause").addEventListener("click", function () {
             obj.domElement.removeEventListener("click", blockEvent, true);
         }
     }
+
+    adjust_icon_position();
 
 })
 
@@ -1296,6 +1301,12 @@ function step_change_helper(slipt_step, minus) {
             }
         }
     }
+}
+
+function adjust_icon_position() {
+    let width = window.innerWidth - 2 * window_margin - right_block;
+    let margin_left = window_margin + width / 2 - 100;
+    document.getElementById("last_step").style.marginLeft = margin_left + "px";
 }
 
 // 绘制热力图
