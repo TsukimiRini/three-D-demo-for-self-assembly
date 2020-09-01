@@ -122,7 +122,8 @@ let camera = null;
 let composer, outlinePass, outlinePass_models;
 let raycaster = new THREE.Raycaster(); // 鼠标指针射线
 let mouse = new THREE.Vector2(); // 鼠标坐标
-let hover_obj = [];
+let hover_obj = null; // 正被悬停的agent
+let selected_obj = []; // 被右键的agent
 
 // gui element
 let GUI_domElement = {
@@ -566,6 +567,10 @@ function init() {
     // 将描边加入鼠标移动事件
     window.addEventListener('mousemove', onMouseMove, false);
 
+    // controls.enabled = false;
+    // 鼠标右键点击事件
+    document.addEventListener('mousedown', onMouseUp, false);
+
     // 浏览器resize事件
     window.onresize = resize_window;
 }
@@ -579,6 +584,66 @@ function resize_window() {
     composer.setSize(window.innerWidth - 2 * window_margin - right_block, window.innerHeight - 2 * window_margin - bottom_block);
 
     adjust_icon_position();
+}
+
+// 右键agent可以显示/隐藏轨迹
+function onMouseUp(e) {
+    console.log("click")
+    if (e.button != 2) return; // 右键点击
+    console.log("clicked")
+    mouse.x = ((event.clientX - window_margin) / (window.innerWidth - 2 * window_margin - right_block)) * 2 - 1;
+    mouse.y = - ((event.clientY - window_margin) / (window.innerHeight - 2 * window_margin - bottom_block)) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    var intersects = raycaster.intersectObject(scene, true);
+    console.log(intersects)
+    var idx = -1;
+
+    if (intersects.length > 0) {
+        let agent_type = agent_types[agent_id];
+        if (agent_type === "cube" || agent_type === "sphere") {
+            for (let i = 0; i < intersects.length; i++) {
+                var selectedObject = intersects[i].object;
+                idx = objects.indexOf(selectedObject);
+                console.log(idx)
+                if (idx >= 0) {
+                    let selected_idx = selected_obj.indexOf(selectedObject);
+                    console.log(selected_obj)
+                    if (selected_idx >= 0) {
+                        selected_obj.splice(selected_idx, 1);
+                        orbits[idx].visible = false;
+                        console.log("a")
+                    } else {
+                        selected_obj.push(selectedObject);
+                        orbits[idx].visible = true;
+                        console.log("b")
+                    }
+                    outlinePass.selectedObjects = selected_obj;
+                    break;
+                }
+            }
+        } else if (["slime", "man", "puppy"].includes(agent_type)) { // models
+            for (let i = 0; i < intersects.length; i++) {
+                var selectedObject = intersects[i].object;
+                while (selectedObject.parent && selectedObject.name !== "Root Scene") {
+                    selectedObject = selectedObject.parent;
+                }
+                idx = GLB_LOAD.models.indexOf(selectedObject);
+                if (idx >= 0) {
+                    let selected_idx = selected_obj.indexOf(selectedObject);
+                    if (selected_idx >= 0) {
+                        selected_obj.splice(selected_idx, 1);
+                        orbits[idx].visible = false;
+                    } else {
+                        selected_obj.push(selectedObject);
+                        orbits[idx].visible = true;
+                    }
+                    outlinePass_models.selectedObjects = selected_obj;
+                    break;
+                }
+            }
+        }
+    }
 }
 
 // 鼠标移动事件执行函数：判断是否在agent上停留
@@ -596,15 +661,17 @@ function onMouseMove(evt) {
         if (agent_type === "cube" || agent_type === "sphere") {
             for (let i = 0; i < intersects.length; i++) {
                 var selectedObject = intersects[i].object;
+                if (selectedObject === hover_obj) return;
                 idx = objects.indexOf(selectedObject);
                 if (idx >= 0) {
-                    for (let obj of hover_obj) {
-                        let obj_idx = objects.indexOf(obj);
+                    if (hover_obj !== null && !selected_obj.includes(hover_obj)) {
+                        let obj_idx = objects.indexOf(hover_obj);
                         orbits[obj_idx].visible = false;
+                        let outline_idx = outlinePass.selectedObjects.indexOf(hover_obj);
+                        outlinePass.selectedObjects.splice(outline_idx, 1);
                     }
-                    hover_obj = [];
-                    hover_obj.push(selectedObject)
-                    outlinePass.selectedObjects = hover_obj;
+                    hover_obj = selectedObject;
+                    outlinePass.selectedObjects.push(hover_obj);
                     orbits[idx].visible = true;
                     break;
                 }
@@ -615,15 +682,17 @@ function onMouseMove(evt) {
                 while (selectedObject.parent && selectedObject.name !== "Root Scene") {
                     selectedObject = selectedObject.parent;
                 }
+                if (selectedObject === hover_obj) return;
                 idx = GLB_LOAD.models.indexOf(selectedObject);
                 if (idx >= 0) {
-                    for (let obj of hover_obj) {
-                        let obj_idx = GLB_LOAD.models.indexOf(obj);
+                    if (hover_obj !== null && !selected_obj.includes(hover_obj)) {
+                        let obj_idx = GLB_LOAD.models.indexOf(hover_obj);
                         orbits[obj_idx].visible = false;
+                        let outline_idx = outlinePass.selectedObjects.indexOf(hover_obj);
+                        outlinePass_models.selectedObjects.splice(outline_idx, 1);
                     }
-                    hover_obj = [];
-                    hover_obj.push(selectedObject);
-                    outlinePass_models.selectedObjects = hover_obj;
+                    hover_obj = selectedObject;
+                    outlinePass_models.selectedObjects.push(hover_obj);
                     orbits[idx].visible = true;
                     break;
                 }
@@ -952,7 +1021,8 @@ function clear_orbits() {
 
     orbits.length = 0;
     geometry_orbits.length = 0;
-    hover_obj = [];
+    meshline_orbits.length = 0;
+    hover_obj = null;
 }
 
 let animate = function () {
