@@ -392,7 +392,7 @@ function cube_generate() {
         shininess: 5,
         specular: 0xdb504b
     });
-    var line_material = new MeshLineMaterial({ color: new THREE.Color(0x036fa0), sizeAttenuation: true, lineWidth: 0.1, opacity: 0.7, transparent: true });
+    var line_material = new MeshLineMaterial({ color: new THREE.Color(0xbd1a52), sizeAttenuation: true, lineWidth: 0.1, opacity: 0.7, transparent: true });
     for (let i = 0; i < shape_config.agent_num; i++) {
         let geometry = new THREE.BoxGeometry(0.9, 0.9, 1);
         let cube = new THREE.Mesh(geometry, material);
@@ -420,7 +420,7 @@ function sphere_generate() {
         polygonOffsetUnits: 2,
     });
 
-    var line_material = new MeshLineMaterial({ color: new THREE.Color(0x036fa0), sizeAttenuation: true, lineWidth: 0.1, opacity: 0.7, transparent: true });
+    var line_material = new MeshLineMaterial({ color: new THREE.Color(0xbd1a52), sizeAttenuation: true, lineWidth: 0.1, opacity: 0.7, transparent: true });
     for (let i = 0; i < shape_config.agent_num; i++) {
         // create group for the integrity of sphere and shadow
         let base = new THREE.Object3D(); // sphere & shadow
@@ -470,7 +470,7 @@ function sphere_generate() {
 
 function model_generate() {
     let mod_name = agent_types[agent_id];
-    var material = new MeshLineMaterial({ color: new THREE.Color(0x036fa0), sizeAttenuation: true, lineWidth: 0.1, opacity: 0.7, transparent: true });
+    var material = new MeshLineMaterial({ color: new THREE.Color(0xbd1a52), sizeAttenuation: true, lineWidth: 0.1, opacity: 0.7, transparent: true });
     for (let i = 0; i < shape_config.agent_num; i++) {
         let position = {
             x: poses_data[0][2 * i] - shape_config.grid_w / 2 + 0.5,
