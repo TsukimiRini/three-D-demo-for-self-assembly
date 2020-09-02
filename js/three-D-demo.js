@@ -722,11 +722,11 @@ function hide_tooltip() {
 }
 
 // 创建grid
-function create_grid() {
+function create_grid(color = 0xD5D5E0) {
     if (grid) {
         scene.remove(grid);
     }
-    grid = new THREE.GridHelper(shape_config.grid_w, shape_config.grid_w, 0xD5D5E0, 0xD5D5E0);
+    grid = new THREE.GridHelper(shape_config.grid_w, shape_config.grid_w, color, color);
     grid.material.opacity = 1;
     grid.material.transparent = true;
     grid.material.polygonOffset = true;
@@ -1219,6 +1219,9 @@ document.getElementById("pause").addEventListener("click", function () {
             let obj = GUI_functions[ele];
             obj.domElement.addEventListener("click", blockEvent, true);
         }
+
+        // 使grid清晰化
+        create_grid(0xffffff);
     } else {
         // 隐藏热力图
         document.getElementById("heatmap_r").style.display = "none";
@@ -1239,6 +1242,9 @@ document.getElementById("pause").addEventListener("click", function () {
             let obj = GUI_functions[ele];
             obj.domElement.removeEventListener("click", blockEvent, true);
         }
+
+        // 使grid淡化
+        create_grid(0xD5D5E0);
     }
 
     adjust_icon_position();
