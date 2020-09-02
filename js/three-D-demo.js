@@ -661,8 +661,8 @@ function onMouseMove(evt) {
         if (agent_type === "cube" || agent_type === "sphere") {
             for (let i = 0; i < intersects.length; i++) {
                 var selectedObject = intersects[i].object;
-                if (selectedObject === hover_obj) return;
                 idx = objects.indexOf(selectedObject);
+                if (selectedObject === hover_obj) break;
                 if (idx >= 0) {
                     if (hover_obj !== null && !selected_obj.includes(hover_obj)) {
                         let obj_idx = objects.indexOf(hover_obj);
@@ -682,8 +682,8 @@ function onMouseMove(evt) {
                 while (selectedObject.parent && selectedObject.name !== "Root Scene") {
                     selectedObject = selectedObject.parent;
                 }
-                if (selectedObject === hover_obj) return;
                 idx = GLB_LOAD.models.indexOf(selectedObject);
+                if (selectedObject === hover_obj) break;
                 if (idx >= 0) {
                     if (hover_obj !== null && !selected_obj.includes(hover_obj)) {
                         let obj_idx = GLB_LOAD.models.indexOf(hover_obj);
