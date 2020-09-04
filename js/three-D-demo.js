@@ -63,7 +63,7 @@ let init_rotation = {
 }
 let animation_idx = {
     "slime": 0,
-    "man": 9,
+    "man": 10,
     "puppy": 1,
 }
 function dirX2rotation(x, y) {
@@ -588,7 +588,20 @@ function resize_window() {
 
 // 右键agent可以显示/隐藏轨迹
 function onMouseUp(e) {
-    console.log("click")
+    if (e.button == 0) {
+        if (hover_obj) {
+            if (["cube", "sphere"].includes(agent_types[agent_id])) {
+                let idx = objects.indexOf(hover_obj);
+                orbits[idx].visible = false;
+            } else {
+                let idx = GLB_LOAD.models.indexOf(hover_obj);
+                orbits[idx].visible = false;
+            }
+        }
+        hover_obj = null;
+        outlinePass.selectedObjects = [];
+        outlinePass_models.selectedObjects = [];
+    }
     if (e.button != 2) return; // 右键点击
     console.log("clicked")
     mouse.x = ((event.clientX - window_margin) / (window.innerWidth - 2 * window_margin - right_block)) * 2 - 1;
@@ -1096,6 +1109,7 @@ document.getElementById("apply").addEventListener("click", function () {
         return;
     }
     grid_data = arrTrans(CUSTOM_PAD.width, CUSTOM_PAD.new_shape_data);
+    console.log(grid_data)
     shape_config.grid_w = CUSTOM_PAD.width, shape_config.grid_h = CUSTOM_PAD.height;
     shape_config.shape_num = custom_shape_id;
     shape_config.agent_num = CUSTOM_PAD.agent_num;
@@ -1170,7 +1184,8 @@ document.getElementById("stored_shape_apply").addEventListener("click", function
         if (size_obj.width === parseInt(size_mat[0]) && size_obj.height === parseInt(size_mat[1]))
             break;
     }
-    shape_config.file_path = data_file_path_generate(stored_para[STORED_SHAPE_PAD.selected_shape].sizes[idx].grid_file);
+    var parse_size = [parseInt(size_mat[0]), parseInt(size_mat[1])];
+    shape_config.file_path = data_file_path_generate(stored_para[STORED_SHAPE_PAD.selected_shape].sizes[idx].grid_file, parse_size);
     let obj = parse_grid(shape_config.file_path);
     shape_config.grid_w = obj.grid_w, shape_config.grid_h = obj.grid_h;
     grid_data = obj.content;
@@ -1179,7 +1194,7 @@ document.getElementById("stored_shape_apply").addEventListener("click", function
 
     poses_data.length = 0;
     done = false;
-    let pose_file = data_file_path_generate(stored_para[STORED_SHAPE_PAD.selected_shape].sizes[idx].pose_file)
+    let pose_file = data_file_path_generate(stored_para[STORED_SHAPE_PAD.selected_shape].sizes[idx].pose_file, parse_size)
     let { len, res } = parse_poses(pose_file);
     total_step = len;
     poses_data = res;
@@ -1187,8 +1202,8 @@ document.getElementById("stored_shape_apply").addEventListener("click", function
     done = true;
 });
 
-function data_file_path_generate(file) {
-    return "../data/" + file;
+function data_file_path_generate(file, size) {
+    return "../data/" + size[0] + "_" + size[1] + "/" + file;
 }
 
 // 阻止用户在暂停时改变shape、动画参数等
