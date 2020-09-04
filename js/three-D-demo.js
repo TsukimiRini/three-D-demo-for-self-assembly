@@ -246,36 +246,126 @@ function outline_grid() {
     //     scene.remove(obj);
     horizon_line.length = 0, vertical_line.length = 0;
 
+    // 边界条件处理
+    let s = -1, e = -1;
+    if (grid_data[0][0] == 1) {
+        s = 0;
+    }
+    for (let i = 1; i < shape_config.grid_w; i++) {
+        if (grid_data[0][i - 1] == 1 && grid_data[0][i] == 0) {
+            e = i;
+            horizon_line.push([0, s, e]);
+        }
+        if (grid_data[0][i - 1] == 0 && grid_data[0][i] == 1) {
+            s = i;
+        }
+        if (i === shape_config.grid_w - 1 && grid_data[0][i] == 1) {
+            e = i + 1;
+            horizon_line.push([0, s, e]);
+        }
+    }
+    if (grid_data[shape_config.grid_h - 1][0] == 1) {
+        s = 0;
+    }
+    for (let i = 1; i < shape_config.grid_w; i++) {
+        if (grid_data[shape_config.grid_h - 1][i - 1] == 1 && grid_data[shape_config.grid_h - 1][i] == 0) {
+            e = i;
+            horizon_line.push([shape_config.grid_h, s, e]);
+        }
+        if (grid_data[shape_config.grid_h - 1][i - 1] == 0 && grid_data[shape_config.grid_h - 1][i] == 1) {
+            s = i;
+        }
+        if (i === shape_config.grid_w - 1 && grid_data[shape_config.grid_h - 1][i] == 1) {
+            e = i + 1;
+            horizon_line.push([shape_config.grid_h, s, e]);
+        }
+    }
+    console.log(horizon_line)
+
     let last_up = -1, last_down = -1, start_node = -1, cur_node = -1, cur_up = -1, cur_down = -1;
     for (let i = 1; i < shape_config.grid_h; i++) {
         for (let j = 0; j < shape_config.grid_w; j++) {
             cur_up = grid_data[i - 1][j], cur_down = grid_data[i][j];
             if (cur_up === last_up && cur_down === last_down) {
                 cur_node = j + 1;
-                continue;
+                if (j !== shape_config.grid_w - 1)
+                    continue;
             }
-            if (last_up !== last_down)
+            if (last_up !== last_down) {
                 horizon_line.push([i, start_node, cur_node]);
-            if (cur_up !== cur_down) {
-                start_node = j;
-                cur_node = j + 1;
+                start_node = -1;
+            }
+            if (cur_up !== cur_down && !(cur_up === last_up && cur_down === last_down)) {
+                if (j !== shape_config.grid_w - 1) {
+                    start_node = j;
+                    cur_node = j + 1;
+                }
+                else {
+                    horizon_line.push([i, j, j + 1]);
+                }
             }
             last_up = cur_up, last_down = cur_down;
         }
         last_up = -1, last_down = -1, start_node = -1, cur_node = -1;
     }
+
+    // 边界条件处理
+    s = -1, e = -1;
+    if (grid_data[0][0] == 1) {
+        s = 0;
+    }
+    for (let i = 1; i < shape_config.grid_h; i++) {
+        if (grid_data[i - 1][0] == 1 && grid_data[i][0] == 0) {
+            e = i;
+            vertical_line.push([0, s, e]);
+        }
+        if (grid_data[i - 1][0] == 0 && grid_data[i][0] == 1) {
+            s = i;
+        }
+        if (i === shape_config.grid_h - 1 && grid_data[i][0] == 1) {
+            e = i + 1;
+            vertical_line.push([0, s, e]);
+        }
+    }
+    if (grid_data[0][shape_config.grid_w - 1] == 1) {
+        s = 0;
+    }
+    for (let i = 1; i < shape_config.grid_h; i++) {
+        if (grid_data[i - 1][shape_config.grid_w - 1] == 1 && grid_data[i][shape_config.grid_w - 1] == 0) {
+            e = i;
+            vertical_line.push([shape_config.grid_w, s, e]);
+        }
+        if (grid_data[i - 1][shape_config.grid_w - 1] == 0 && grid_data[i][shape_config.grid_w - 1] == 1) {
+            s = i;
+        }
+        if (i === shape_config.grid_w - 1 && grid_data[i][shape_config.grid_w - 1] == 1) {
+            e = i + 1;
+            vertical_line.push([shape_config.grid_w, s, e]);
+        }
+    }
+
+    console.log(vertical_line)
+
     for (let i = 1; i < shape_config.grid_w; i++) {
         for (let j = 0; j < shape_config.grid_h; j++) {
             cur_up = grid_data[j][i - 1], cur_down = grid_data[j][i];
             if (cur_up === last_up && cur_down === last_down) {
                 cur_node = j + 1;
-                continue;
+                if (j !== shape_config.grid_h - 1)
+                    continue;
             }
-            if (last_up !== last_down)
+            if (last_up !== last_down) {
                 vertical_line.push([i, start_node, cur_node]);
-            if (cur_up !== cur_down) {
-                start_node = j;
-                cur_node = j + 1;
+                start_node = -1;
+            }
+            if (cur_up !== cur_down && !(cur_up === last_up && cur_down === last_down)) {
+                if (j !== shape_config.grid_h - 1) {
+                    start_node = j;
+                    cur_node = j + 1;
+                }
+                else {
+                    vertical_line.push([i, j, j + 1]);
+                }
             }
             last_up = cur_up, last_down = cur_down;
         }
