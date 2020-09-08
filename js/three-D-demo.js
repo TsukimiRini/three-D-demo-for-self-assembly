@@ -246,7 +246,7 @@ function create_GUI() {
     GUI_functions.draw_shape = custom_folder.add(params, 'custom_pad').name('Draw a shape');
     GUI_functions.upload_shape = custom_folder.add(params, 'image_upload_pad').name('Upload a pic')
     GUI_functions.shape_selector = gui.add(params, "stored_shape_pad").name("Select a shape");
-    gui.add(params, "change_vp").name("Change viewpoint");
+    gui.add(params, "change_vp").name("Change camera");
 }
 
 // compute the shape of pattern to draw the outline
@@ -675,6 +675,9 @@ function init() {
 
     // 浏览器resize事件
     window.onresize = resize_window;
+
+    // 使流程控制栏折叠功能生效
+    collapse_icons_init();
 }
 
 // resize事件函数
@@ -705,13 +708,11 @@ function onMouseUp(e) {
         outlinePass_models.selectedObjects = [];
     }
     if (e.button != 2) return; // 右键点击
-    console.log("clicked")
     mouse.x = ((event.clientX - window_margin) / (window.innerWidth - 2 * window_margin - right_block)) * 2 - 1;
     mouse.y = - ((event.clientY - window_margin) / (window.innerHeight - 2 * window_margin - bottom_block)) * 2 + 1;
 
     raycaster.setFromCamera(mouse, camera);
     var intersects = raycaster.intersectObject(scene, true);
-    console.log(intersects)
     var idx = -1;
 
     if (intersects.length > 0) {
@@ -827,12 +828,9 @@ function change_viewpoint() {
     let cur_vp = new THREE.Spherical();
     cur_vp.setFromVector3(camera.position);
     var new_vp = new THREE.Spherical(cur_vp.radius, viewpoint[vp_id].phi, viewpoint[vp_id].theta);
-    console.log(new_vp)
     var vec3 = new THREE.Vector3();
     vec3.setFromSpherical(new_vp);
-    console.log(vec3)
     camera.position.set(vec3.x, vec3.y, vec3.z);
-    console.log(camera.position)
 }
 
 // 悬停在agent上出现气泡
@@ -1155,9 +1153,6 @@ function clear_orbits() {
 }
 
 let animate = function () {
-    let a = new THREE.Spherical();
-    a.setFromVector3(new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z));
-    console.log(a)
     requestAnimationFrame(animate);
     if (!done && poses_data.length < mov_para.step + 2) {
         return;
@@ -1517,6 +1512,19 @@ function adjust_icon_position() {
     let width = window.innerWidth - 2 * window_margin - right_block;
     let margin_left = window_margin + width / 2 - 100;
     document.getElementById("last_step").style.marginLeft = margin_left + "px";
+}
+
+function collapse_icons_init() {
+    var coll = document.getElementById("collapse_btn");
+    coll.addEventListener("click", function () {
+        this.classList.toggle("active");
+        var content = document.getElementById("float_nav");
+        if (content.style.maxWidth) {
+            content.style.maxWidth = null;
+        } else {
+            content.style.maxWidth = 200 + "px";
+        }
+    })
 }
 
 // 绘制热力图

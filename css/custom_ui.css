@@ -139,4 +139,29 @@
     border-top:2px solid;
     border-bottom:2px solid; */
     box-shadow: 0px 0px 10px #888888;
+    transition: max-width 0.2s ease-out;
+    overflow: hidden;
+    max-width: 0px;
+}
+.collapsible{
+    position: fixed;
+    background-color: rgb(165, 158, 158);
+    color: white;
+    cursor: pointer;
+    font-size: 15px;
+    right: 0px;
+    border: none;
+    outline:none;
+}
+.active, .collapsible:hover {
+    background-color: rgb(133, 132, 132);
+}
+.collapsible:after {
+    content: '\002B';
+    color: white;
+    font-weight: bold;
+    float: right;
+}
+.active:after {
+    content: "\2212";
 }
