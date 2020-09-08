@@ -107,6 +107,7 @@ let params = {
     custom_pad: CUSTOM_PAD.popup_custom_pad,
     image_upload_pad: CUSTOM_PAD.show_image_upload_popup,
     stored_shape_pad: STORED_SHAPE_PAD.popup_stored_shape,
+    change_vp: change_viewpoint,
 }
 
 // global
@@ -124,6 +125,16 @@ let raycaster = new THREE.Raycaster(); // 鼠标指针射线
 let mouse = new THREE.Vector2(); // 鼠标坐标
 let hover_obj = null; // 正被悬停的agent
 let selected_obj = []; // 被右键的agent
+
+// 预设视角定义
+let viewpoint = [
+    { phi: 1.57, theta: 0 },
+    { phi: 2.023, theta: 0.255 },
+    { phi: 2.765, theta: 0.3453 },
+    { phi: 2.883, theta: -0.067 },
+    { phi: 2.328, theta: -0.54 },
+]
+let vp_id = 0;
 
 // gui element
 let GUI_domElement = {
@@ -153,7 +164,7 @@ let poses_data = [];// poses_data[i][2*r]:x of agent r in i-th step
 // 3d场景离页面边缘距离
 let window_margin = 50;
 let right_block = 0;
-let bottom_block = 100;
+let bottom_block = 0;
 
 let done = false;
 let paused = false;
@@ -184,7 +195,7 @@ init();
 reset_shape();
 done = true;
 create_GUI();
-adjust_icon_position();
+// adjust_icon_position();
 // =================================================================
 function init_shape_data() {
     shape_config.grid_w = grid_w, shape_config.grid_h = grid_h;
@@ -235,6 +246,7 @@ function create_GUI() {
     GUI_functions.draw_shape = custom_folder.add(params, 'custom_pad').name('Draw a shape');
     GUI_functions.upload_shape = custom_folder.add(params, 'image_upload_pad').name('Upload a pic')
     GUI_functions.shape_selector = gui.add(params, "stored_shape_pad").name("Select a shape");
+    gui.add(params, "change_vp").name("Change viewpoint");
 }
 
 // compute the shape of pattern to draw the outline
@@ -673,7 +685,7 @@ function resize_window() {
     renderer.setSize(window.innerWidth - 2 * window_margin - right_block, window.innerHeight - 2 * window_margin - bottom_block);
     composer.setSize(window.innerWidth - 2 * window_margin - right_block, window.innerHeight - 2 * window_margin - bottom_block);
 
-    adjust_icon_position();
+    // adjust_icon_position();
 }
 
 // 右键agent可以显示/隐藏轨迹
@@ -807,6 +819,20 @@ function onMouseMove(evt) {
     if (paused && idx >= 0) {
         show_tooltip(event.clientX, event.clientY, idx);
     }
+}
+
+// 改变视角
+function change_viewpoint() {
+    vp_id = (vp_id + 1) % viewpoint.length;
+    let cur_vp = new THREE.Spherical();
+    cur_vp.setFromVector3(camera.position);
+    var new_vp = new THREE.Spherical(cur_vp.radius, viewpoint[vp_id].phi, viewpoint[vp_id].theta);
+    console.log(new_vp)
+    var vec3 = new THREE.Vector3();
+    vec3.setFromSpherical(new_vp);
+    console.log(vec3)
+    camera.position.set(vec3.x, vec3.y, vec3.z);
+    console.log(camera.position)
 }
 
 // 悬停在agent上出现气泡
@@ -1129,6 +1155,9 @@ function clear_orbits() {
 }
 
 let animate = function () {
+    let a = new THREE.Spherical();
+    a.setFromVector3(new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z));
+    console.log(a)
     requestAnimationFrame(animate);
     if (!done && poses_data.length < mov_para.step + 2) {
         return;
@@ -1352,7 +1381,7 @@ document.getElementById("pause").addEventListener("click", function () {
         create_grid(0xD5D5E0);
     }
 
-    adjust_icon_position();
+    // adjust_icon_position();
 
 })
 

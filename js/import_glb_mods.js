@@ -1,6 +1,6 @@
 "use strict"
-import * as THREE from '../three.js-master/build/three.module.js';
-import { GLTFLoader } from '../three.js-master/examples/jsm/loaders/GLTFLoader.js';
+import * as THREE from '../three.js-r120/build/three.module.js';
+import { GLTFLoader } from '../three.js-r120/examples/jsm/loaders/GLTFLoader.js';
 
 // slime: rotation-X90,Y270, scale:0.3,0.3,0.3
 // parameter description:
