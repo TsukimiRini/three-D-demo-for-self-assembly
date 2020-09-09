@@ -145,7 +145,7 @@
 }
 .collapsible{
     position: fixed;
-    background-color: rgb(165, 158, 158);
+    background-color: #009966;
     color: white;
     cursor: pointer;
     font-size: 15px;
@@ -154,7 +154,7 @@
     outline:none;
 }
 .active, .collapsible:hover {
-    background-color: rgb(133, 132, 132);
+    background-color: #0c6f4e;
 }
 .collapsible:after {
     content: '\002B';

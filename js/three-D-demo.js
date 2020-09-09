@@ -672,6 +672,7 @@ function init() {
     // controls.enabled = false;
     // 鼠标右键点击事件
     document.addEventListener('mousedown', onMouseUp, false);
+    window.addEventListener('click', onClick, false);
 
     // 浏览器resize事件
     window.onresize = resize_window;
@@ -689,6 +690,40 @@ function resize_window() {
     composer.setSize(window.innerWidth - 2 * window_margin - right_block, window.innerHeight - 2 * window_margin - bottom_block);
 
     // adjust_icon_position();
+}
+
+// 左键点击事件
+function onClick() {
+    if (!hover_obj) return;
+    mouse.x = ((event.clientX - window_margin) / (window.innerWidth - 2 * window_margin - right_block)) * 2 - 1;
+    mouse.y = - ((event.clientY - window_margin) / (window.innerHeight - 2 * window_margin - bottom_block)) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    var intersects = raycaster.intersectObject(scene, true);
+
+    if (intersects.length > 0) {
+        for (let i = 0; i < intersects.length; i++) {
+            var selectedObject = intersects[i].object;
+            let agent_type = agent_types[agent_id];
+            if (["slime", "man", "puppy"].includes(agent_type)) {
+                while (selectedObject.parent && selectedObject.name !== "Root Scene") {
+                    selectedObject = selectedObject.parent;
+                }
+            }
+            if (hover_obj === selectedObject) return;
+        }
+    }
+
+    if (["cube", "sphere"].includes(agent_types[agent_id])) {
+        let idx = objects.indexOf(hover_obj);
+        orbits[idx].visible = false;
+    } else {
+        let idx = GLB_LOAD.models.indexOf(hover_obj);
+        orbits[idx].visible = false;
+    }
+    hover_obj = null;
+    outlinePass.selectedObjects = [];
+    outlinePass_models.selectedObjects = [];
 }
 
 // 右键agent可以显示/隐藏轨迹
