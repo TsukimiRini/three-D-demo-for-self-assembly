@@ -129,10 +129,10 @@ let selected_obj = []; // 被右键的agent
 // 预设视角定义
 let viewpoint = [
     { phi: 1.57, theta: 0 },
-    { phi: 2.023, theta: 0.255 },
-    { phi: 2.765, theta: 0.3453 },
-    { phi: 2.883, theta: -0.067 },
-    { phi: 2.328, theta: -0.54 },
+    // { phi: 2.023, theta: 0.255 },
+    // { phi: 2.765, theta: 0.3453 },
+    // { phi: 2.883, theta: -0.067 },
+    // { phi: 2.328, theta: -0.54 },
 ]
 let vp_id = 0;
 
@@ -246,7 +246,7 @@ function create_GUI() {
     GUI_functions.draw_shape = custom_folder.add(params, 'custom_pad').name('Draw a shape');
     GUI_functions.upload_shape = custom_folder.add(params, 'image_upload_pad').name('Upload a pic')
     GUI_functions.shape_selector = gui.add(params, "stored_shape_pad").name("Select a shape");
-    gui.add(params, "change_vp").name("Change camera");
+    gui.add(params, "change_vp").name("Adjust camera");
 }
 
 // compute the shape of pattern to draw the outline
@@ -647,7 +647,7 @@ function init() {
     // var axesHelper = new THREE.AxesHelper(shape_config.grid_w);
     // scene.add(axesHelper);
 
-    camera.position.z = 20;
+    camera.position.z = shape_config.grid_w/1.4;
 
     // 绘制描边效果
     composer = new EffectComposer(renderer);
@@ -935,6 +935,7 @@ function reset_shape() {
     outline_grid();
     build_outline_wall();
     repaint_agent();
+    camera.position.z = shape_config.grid_w/1.4;
 }
 
 // 重置agent（cube）
