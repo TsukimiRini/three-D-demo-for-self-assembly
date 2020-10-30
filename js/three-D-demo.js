@@ -17,6 +17,16 @@ import { generateGrid, showImage } from "../js/canvas_grid_genration.js";
 import { calculate_lf, drawHeatMap, clear_ALF } from "../js/ALF.js";
 
 // ======================parameter===============================
+// color
+let color_scheme = {
+    agent_color: 0x7C3C3C,          // 小球颜色
+    plane_color: 0xC0CDCF,          // 非目标区域颜色
+    grid_color: 0xD5D5E0,           // 网格颜色
+    target_shape_color: 0xEEE0CB,   // 目标区域颜色
+    orbit_color: 0xbd1a52,          // 轨迹线颜色
+    background_color: 0xe0e0e0,     // 背景颜色
+    outline_wall_color: 0x669999,   // 目标区域形状轮廓颜色
+}
 // config
 let agent_types = ["cube", "sphere", "slime", "man", "puppy"];
 let agent_id = 1;
@@ -89,8 +99,8 @@ let shape_config = {
     grid_h: null,
     shape_num: null,
     agent_num: null,
-    file_path: '../data/grid_3_60.txt',
-    pose_path: '../data/poses_3_60.txt'
+    file_path: '../data/80_80/grid_batman_93_2141.txt',
+    pose_path: '../data/80_80/poses_0_0_80_80_batman_93_2141.txt'
 }
 
 let params = {
@@ -444,7 +454,7 @@ function build_outline_wall() {
     let materialX = new THREE.ShaderMaterial({
         uniforms: {
             color1: {
-                value: new THREE.Color(0x669999)
+                value: new THREE.Color(color_scheme.outline_wall_color)
             },
             color2: {
                 value: new THREE.Color("purple")
@@ -488,13 +498,13 @@ function create_mesh_line(material, x, y) {
 function cube_generate() {
     // a cube
     let material = new THREE.MeshPhongMaterial({
-        color: 0x7C3C3C, polygonOffset: true,
+        color: color_scheme.agent_color, polygonOffset: true,
         polygonOffsetFactor: 0.1,
         polygonOffsetUnits: 2,
         shininess: 5,
         specular: 0xdb504b
     });
-    var line_material = new MeshLineMaterial({ color: new THREE.Color(0xbd1a52), sizeAttenuation: true, lineWidth: 0.1, opacity: 0.7, transparent: true });
+    var line_material = new MeshLineMaterial({ color: new THREE.Color(color_scheme.orbit_color), sizeAttenuation: true, lineWidth: 0.1, opacity: 0.7, transparent: true });
     for (let i = 0; i < shape_config.agent_num; i++) {
         let geometry = new THREE.BoxGeometry(0.9, 0.9, 1);
         let cube = new THREE.Mesh(geometry, material);
@@ -517,12 +527,12 @@ function cube_generate() {
 
 function sphere_generate() {
     let material = new THREE.MeshPhongMaterial({
-        color: 0x7C3C3C, polygonOffset: true,
+        color: color_scheme.agent_color, polygonOffset: true,
         polygonOffsetFactor: 0.1,
         polygonOffsetUnits: 2,
     });
 
-    var line_material = new MeshLineMaterial({ color: new THREE.Color(0xbd1a52), sizeAttenuation: true, lineWidth: 0.1, opacity: 0.7, transparent: true });
+    var line_material = new MeshLineMaterial({ color: new THREE.Color(color_scheme.orbit_color), sizeAttenuation: true, lineWidth: 0.1, opacity: 0.7, transparent: true });
     for (let i = 0; i < shape_config.agent_num; i++) {
         // create group for the integrity of sphere and shadow
         let base = new THREE.Object3D(); // sphere & shadow
@@ -572,7 +582,7 @@ function sphere_generate() {
 
 function model_generate() {
     let mod_name = agent_types[agent_id];
-    var material = new MeshLineMaterial({ color: new THREE.Color(0xbd1a52), sizeAttenuation: true, lineWidth: 0.1, opacity: 0.7, transparent: true });
+    var material = new MeshLineMaterial({ color: new THREE.Color(color_scheme.orbit_color), sizeAttenuation: true, lineWidth: 0.1, opacity: 0.7, transparent: true });
     for (let i = 0; i < shape_config.agent_num; i++) {
         let position = {
             x: poses_data[0][2 * i] - shape_config.grid_w / 2 + 0.5,
@@ -600,11 +610,11 @@ function init() {
     outline_grid();
     build_outline_wall();
 
-    scene.background = new THREE.Color(0xe0e0e0);
+    scene.background = new THREE.Color(color_scheme.background_color);
     camera = new THREE.PerspectiveCamera(75, (window.innerWidth - 2 * window_margin - right_block) / (window.innerHeight - 2 * window_margin - bottom_block), 0.1, 1000);
 
     console.log(window.innerHeight - 2 * window_margin, window.innerWidth - 2 * window_margin);
-    renderer.setSize(window.innerWidth - 2 * window_margin - right_block, window.innerHeight - 2 * window_margin - bottom_block);
+    renderer.setSize(window.innerWidth - 2 * window_margin - right_block, window.innerHeight - 2 * window_margin);
     renderer.sortObjects = false;
     document.getElementById("threeJS").appendChild(renderer.domElement);
 
@@ -644,10 +654,14 @@ function init() {
     create_plane();
 
     // axis
-    // var axesHelper = new THREE.AxesHelper(shape_config.grid_w);
-    // scene.add(axesHelper);
+    var axesHelper = new THREE.AxesHelper(shape_config.grid_w);
+    scene.add(axesHelper);
 
     camera.position.z = shape_config.grid_w/1.4;
+    camera.position.y = 0.8
+
+    scene.translateY(0.8)
+    line_scene.translateY(0.8)
 
     // 绘制描边效果
     composer = new EffectComposer(renderer);
@@ -884,7 +898,7 @@ function hide_tooltip() {
 }
 
 // 创建grid
-function create_grid(color = 0xD5D5E0) {
+function create_grid(color = color_scheme.grid_color) {
     if (grid) {
         scene.remove(grid);
     }
@@ -906,11 +920,11 @@ function create_plane() {
     let geometry = new THREE.PlaneGeometry(shape_config.grid_w, shape_config.grid_h, shape_config.grid_w, shape_config.grid_h);
     let mats = [];
     let material = new THREE.MeshBasicMaterial({
-        color: 0xC0CDCF, side: THREE.DoubleSide
+        color: color_scheme.plane_color, side: THREE.DoubleSide
     }); // plane material
     mats.push(material);
     material = new THREE.MeshBasicMaterial({
-        color: 0xEEE0CB, side: THREE.DoubleSide
+        color: color_scheme.target_shape_color, side: THREE.DoubleSide
     }); // target material
     mats.push(material);
     plane = new THREE.Mesh(geometry, mats);
@@ -1371,7 +1385,7 @@ document.getElementById("pause").addEventListener("click", function () {
         document.getElementById("heatmap_r").style.display = "block";
         document.getElementById("heatmap_b").style.display = "block";
 
-        this.src = "img/start.png";
+        this.src = "img/icon/start.png";
         paused = true;
         document.getElementById("last_step").className = "image_btn";
         document.getElementById("next_step").className = "image_btn";
