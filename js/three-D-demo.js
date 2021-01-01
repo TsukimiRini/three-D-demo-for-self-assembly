@@ -99,8 +99,8 @@ let shape_config = {
     grid_h: null,
     shape_num: null,
     agent_num: null,
-    file_path: '../data/80_80/grid_batman_93_2141.txt',
-    pose_path: '../data/80_80/poses_0_0_80_80_batman_93_2141.txt'
+    file_path: '../data/80_80/grid_chinese_mu_80_1340.txt',
+    pose_path: '../data/80_80/poses_0_6_80_80_chinese_mu_80_1340.txt'
 }
 
 let params = {
@@ -1408,7 +1408,7 @@ document.getElementById("pause").addEventListener("click", function () {
         right_block = 0;
         resize_window();
 
-        this.src = "img/pause.png";
+        this.src = "img/icon/pause.png";
         paused = false;
         document.getElementById("last_step").className = "image_btn_inactive";
         document.getElementById("next_step").className = "image_btn_inactive";
