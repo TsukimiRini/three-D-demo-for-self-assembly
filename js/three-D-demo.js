@@ -14,7 +14,8 @@ import * as STORED_SHAPE_PAD from '../js/stored_shape_module.js';
 import { stored_para } from "../js/shape_para.js";
 import * as GLB_LOAD from "../js/import_glb_mods.js";
 import { generateGrid, showImage } from "../js/canvas_grid_genration.js";
-import { calculate_lf, drawHeatMap, clear_ALF } from "../js/ALF.js";
+import { calculate_lf, clear_ALF } from "../js/ALF.js";
+import { Heatmap } from "../js/heatmap.js"
 
 // ======================parameter===============================
 // color
@@ -129,6 +130,7 @@ let controls = null;
 let grid = null;
 let plane = null;
 let camera = null;
+let htmap_r = null, htmap_b = null;
 
 let composer, outlinePass, outlinePass_models;
 let raycaster = new THREE.Raycaster(); // 鼠标指针射线
@@ -173,7 +175,7 @@ let poses_data = [];// poses_data[i][2*r]:x of agent r in i-th step
 
 // 3d场景离页面边缘距离
 let window_margin = 50;
-let right_block = 0;
+let right_block = 400;
 let bottom_block = 0;
 
 let done = false;
@@ -654,8 +656,8 @@ function init() {
     create_plane();
 
     // axis
-    var axesHelper = new THREE.AxesHelper(shape_config.grid_w);
-    scene.add(axesHelper);
+    // var axesHelper = new THREE.AxesHelper(shape_config.grid_w);
+    // scene.add(axesHelper);
 
     camera.position.z = shape_config.grid_w/1.4;
     camera.position.y = 0.8
@@ -687,6 +689,36 @@ function init() {
     // 鼠标右键点击事件
     document.addEventListener('mousedown', onMouseUp, false);
     window.addEventListener('click', onClick, false);
+
+    // 热力图
+    htmap_r = new Heatmap({
+        width: 380,
+        height: 395,
+        gridW: 80,
+        gridH: 80,
+        el: document.getElementById('heatmap_r'),
+        title: 'red light intensity(*1000)',
+        colorS: '#000000',
+        colorE: '#f00',
+        minVal: 0,
+        maxVal: 10,
+        tooltip: document.getElementById('tooltip_r'),
+    })
+    htmap_b = new Heatmap({
+        width: 380,
+        height: 395,
+        gridW: 80,
+        gridH: 80,
+        el: document.getElementById('heatmap_b'),
+        title: 'blue light intensity(*1000)',
+        colorS: '#000000',
+        colorE: '#0000ff',
+        minVal: 0,
+        maxVal: 10,
+        tooltip: document.getElementById('tooltip_r'),
+    })
+    htmap_r.init();
+    htmap_b.init();
 
     // 浏览器resize事件
     window.onresize = resize_window;
@@ -1227,8 +1259,8 @@ let animate = function () {
         fp_mov = (13 - params.speed) * 10;
         per_mov = 1 / fp_mov;
 
-        // 不渲染热力图，但提前计算数据以提高效率
-        calculate_lf(grid_data, poses_data[mov_para.step], mov_para.step, shape_config.agent_num);
+        // 渲染热力图
+        draw_ALF();
     }
     if (params.agent_type !== agent_types[agent_id]) {
         repaint_agent();
@@ -1403,9 +1435,9 @@ document.getElementById("pause").addEventListener("click", function () {
         create_grid(0xffffff);
     } else {
         // 隐藏热力图
-        document.getElementById("heatmap_r").style.display = "none";
-        document.getElementById("heatmap_b").style.display = "none";
-        right_block = 0;
+        // document.getElementById("heatmap_r").style.display = "none";
+        // document.getElementById("heatmap_b").style.display = "none";
+        right_block = 400;
         resize_window();
 
         this.src = "img/icon/pause.png";
@@ -1582,6 +1614,9 @@ function draw_ALF() {
     let heat_data = calculate_lf(grid_data, poses_data[mov_para.step], mov_para.step, shape_config.agent_num);
     draw_heat_map_completed = false;
 
-    drawHeatMap("heatmap_r", heat_data.res_r, shape_config.grid_w, shape_config.grid_h);
-    drawHeatMap("heatmap_b", heat_data.res_b, shape_config.grid_w, shape_config.grid_h);
+    htmap_r.updateData(heat_data.res_r);
+    htmap_b.updateData(heat_data.res_b);
+
+    // drawHeatMap("heatmap_r", heat_data.res_r, shape_config.grid_w, shape_config.grid_h);
+    // drawHeatMap("heatmap_b", heat_data.res_b, shape_config.grid_w, shape_config.grid_h);
 }
