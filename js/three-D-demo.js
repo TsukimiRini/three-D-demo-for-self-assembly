@@ -45,6 +45,11 @@ let sphere_r = 0.45;
 let ori_height = 0.5;
 let outline_h = 1;
 
+// 每个形状播放一遍后直接播放下一个
+let goToNext = true;
+// 从stored shape中选取形状
+let chooseFromStored = true;
+
 // 上一步/下一步按钮的粒度设置
 const slipt_of_step = 5;
 
@@ -117,7 +122,7 @@ let params = {
     },
     custom_pad: CUSTOM_PAD.popup_custom_pad,
     image_upload_pad: CUSTOM_PAD.show_image_upload_popup,
-    stored_shape_pad: STORED_SHAPE_PAD.popup_stored_shape,
+    // stored_shape_pad: STORED_SHAPE_PAD.popup_stored_shape,
     change_vp: change_viewpoint,
 }
 
@@ -156,7 +161,7 @@ let GUI_domElement = {
 let GUI_functions = {
     draw_shape: null,
     upload_shape: null,
-    shape_selector: null,
+    // shape_selector: null,
 }
 
 let agents_num = 0;
@@ -176,6 +181,7 @@ let poses_data = [];// poses_data[i][2*r]:x of agent r in i-th step
 // 3d场景离页面边缘距离
 let window_margin = 50;
 let right_block = 400;
+let left_block = 400;
 let bottom_block = 0;
 
 let done = false;
@@ -187,12 +193,6 @@ let draw_heat_map_completed = true;
 window.addEventListener("load", function () {
     CUSTOM_PAD.init_custom_pad();
 });
-// load data
-let { grid_w, grid_h, content: grid_data, shape_num, a_num } = parse_grid(shape_config.file_path);
-init_shape_data();
-let { len, res } = parse_poses(shape_config.pose_path);
-total_step = len;
-poses_data = res;
 // load shadow texture & create shadow geometry and material
 const loader = new THREE.TextureLoader();
 const shadowTexture = loader.load('./img/roundshadow.png'); // load the fake shadow texture
@@ -200,10 +200,22 @@ const planeSize = 1;
 const shadowGeo = new THREE.PlaneBufferGeometry(planeSize, planeSize);
 
 STORED_SHAPE_PAD.init_stored_shape();
+
+// load data
+let { grid_w, grid_h, content: grid_data, shape_num, a_num } = parse_grid(shape_config.file_path);
+init_shape_data();
+let { len, res } = parse_poses(shape_config.pose_path);
+total_step = len;
+poses_data = res;
+
 let web_worker = create_web_worker();
 // let timer_worker = create_timer_worker();
 web_worker.postMessage({ MessagePurpose: "SetUp" });
 init();
+if(chooseFromStored){
+    STORED_SHAPE_PAD.focusOnFirst();
+    set_stored_shape();
+}
 reset_shape();
 done = true;
 create_GUI();
@@ -257,7 +269,6 @@ function create_GUI() {
     animation.add(params.show_grid, "ShowGrid").name('Show Grid');
     GUI_functions.draw_shape = custom_folder.add(params, 'custom_pad').name('Draw a shape');
     GUI_functions.upload_shape = custom_folder.add(params, 'image_upload_pad').name('Upload a pic')
-    GUI_functions.shape_selector = gui.add(params, "stored_shape_pad").name("Select a shape");
     gui.add(params, "change_vp").name("Adjust camera");
 }
 
@@ -613,10 +624,10 @@ function init() {
     build_outline_wall();
 
     scene.background = new THREE.Color(color_scheme.background_color);
-    camera = new THREE.PerspectiveCamera(75, (window.innerWidth - 2 * window_margin - right_block) / (window.innerHeight - 2 * window_margin - bottom_block), 0.1, 1000);
+    camera = new THREE.PerspectiveCamera(75, (window.innerWidth - 2 * window_margin - right_block - left_block) / (window.innerHeight - 2 * window_margin - bottom_block), 0.1, 1000);
 
     console.log(window.innerHeight - 2 * window_margin, window.innerWidth - 2 * window_margin);
-    renderer.setSize(window.innerWidth - 2 * window_margin - right_block, window.innerHeight - 2 * window_margin);
+    renderer.setSize(window.innerWidth - 2 * window_margin - right_block - left_block, window.innerHeight - 2 * window_margin);
     renderer.sortObjects = false;
     document.getElementById("threeJS").appendChild(renderer.domElement);
 
@@ -729,11 +740,11 @@ function init() {
 
 // resize事件函数
 function resize_window() {
-    camera.aspect = (window.innerWidth - 2 * window_margin - right_block) / (window.innerHeight - 2 * window_margin - bottom_block);
+    camera.aspect = (window.innerWidth - 2 * window_margin - right_block - left_block) / (window.innerHeight - 2 * window_margin - bottom_block);
     camera.updateProjectionMatrix();
 
-    renderer.setSize(window.innerWidth - 2 * window_margin - right_block, window.innerHeight - 2 * window_margin - bottom_block);
-    composer.setSize(window.innerWidth - 2 * window_margin - right_block, window.innerHeight - 2 * window_margin - bottom_block);
+    renderer.setSize(window.innerWidth - 2 * window_margin - right_block - left_block, window.innerHeight - 2 * window_margin - bottom_block);
+    composer.setSize(window.innerWidth - 2 * window_margin - right_block - left_block, window.innerHeight - 2 * window_margin - bottom_block);
 
     // adjust_icon_position();
 }
@@ -741,7 +752,7 @@ function resize_window() {
 // 左键点击事件
 function onClick() {
     if (!hover_obj) return;
-    mouse.x = ((event.clientX - window_margin) / (window.innerWidth - 2 * window_margin - right_block)) * 2 - 1;
+    mouse.x = ((event.clientX - window_margin) / (window.innerWidth - 2 * window_margin - right_block - left_block)) * 2 - 1;
     mouse.y = - ((event.clientY - window_margin) / (window.innerHeight - 2 * window_margin - bottom_block)) * 2 + 1;
 
     raycaster.setFromCamera(mouse, camera);
@@ -789,7 +800,7 @@ function onMouseUp(e) {
         outlinePass_models.selectedObjects = [];
     }
     if (e.button != 2) return; // 右键点击
-    mouse.x = ((event.clientX - window_margin) / (window.innerWidth - 2 * window_margin - right_block)) * 2 - 1;
+    mouse.x = ((event.clientX - window_margin) / (window.innerWidth - 2 * window_margin - right_block - left_block)) * 2 - 1;
     mouse.y = - ((event.clientY - window_margin) / (window.innerHeight - 2 * window_margin - bottom_block)) * 2 + 1;
 
     raycaster.setFromCamera(mouse, camera);
@@ -845,7 +856,7 @@ function onMouseUp(e) {
 
 // 鼠标移动事件执行函数：判断是否在agent上停留
 function onMouseMove(evt) {
-    mouse.x = ((event.clientX - window_margin) / (window.innerWidth - 2 * window_margin - right_block)) * 2 - 1;
+    mouse.x = ((event.clientX - window_margin - left_block) / (window.innerWidth - 2 * window_margin - right_block - left_block)) * 2 - 1;
     mouse.y = - ((event.clientY - window_margin) / (window.innerHeight - 2 * window_margin - bottom_block)) * 2 + 1;
 
     raycaster.setFromCamera(mouse, camera);
@@ -1043,7 +1054,7 @@ function reset_model() {
 // 清除所有agent（切换agent模型使用）
 function clear_agents() {
     // 清除高亮
-    outlinePass.selectedObjects = [];
+    outlinePass.selectedObjects = [];   
 
     if (groups.length) {
         for (let group of groups)
@@ -1098,7 +1109,13 @@ function agent_move_cube() {
     if (mov_para.step >= total_step - 1) {
         mov_para.frame++;
         if (mov_para.frame === pause_frame) {
-            reset();
+            // 前进到下一个形状
+            if(goToNext){
+                STORED_SHAPE_PAD.select_next_shape();
+                reset_shape();
+            }
+            else
+                reset();
         }
         return;
     }
@@ -1124,7 +1141,13 @@ function agent_move_sphere() {
     if (mov_para.step >= total_step - 1) {
         mov_para.frame++;
         if (mov_para.frame === pause_frame) {
-            reset_group();
+            // 前进到下一个形状
+            if(goToNext){
+                STORED_SHAPE_PAD.select_next_shape();
+                reset_shape();
+            }
+            else
+                reset_group();
         }
         return;
     }
@@ -1169,7 +1192,13 @@ function agent_move_model() {
         }
         mov_para.frame++;
         if (mov_para.frame === pause_frame) {
-            reset_model();
+            // 前进到下一个形状
+            if(goToNext){
+                STORED_SHAPE_PAD.select_next_shape();
+                reset_shape();
+            }
+            else
+                reset_model();
         }
         return;
     }
@@ -1353,8 +1382,7 @@ document.getElementById("img_apply").addEventListener("click", function () {
     }
 });
 
-// 选择已有形状按钮事件
-document.getElementById("stored_shape_apply").addEventListener("click", function () {
+function set_stored_shape(){
     let radios = document.getElementsByName("grid_size");
     let has_checked = null; // 选中的规模
     for (let i = 0; i < radios.length; i++) {
@@ -1363,12 +1391,12 @@ document.getElementById("stored_shape_apply").addEventListener("click", function
         }
     }
     // 检查是否选中一种grid规模
-    if (!has_checked) {
-        alert("Please set the grid size!");
-        return;
-    } else {
-        STORED_SHAPE_PAD.hide_stored_shape();
-    }
+    // if (!has_checked) {
+    //     alert("Please set the grid size!");
+    //     return;
+    // } else {
+    //     STORED_SHAPE_PAD.hide_stored_shape();
+    // }
 
 
     let stored_shape_obj = stored_para[STORED_SHAPE_PAD.selected_shape];
@@ -1396,7 +1424,10 @@ document.getElementById("stored_shape_apply").addEventListener("click", function
     poses_data = res;
     reset_shape();
     done = true;
-});
+}
+
+// 选择已有形状按钮事件
+document.getElementById("stored_shape_apply").addEventListener("click", set_stored_shape);
 
 function data_file_path_generate(file, size) {
     return "../data/" + size[0] + "_" + size[1] + "/" + file;
@@ -1591,7 +1622,7 @@ function step_change_helper(slipt_step, minus) {
 }
 
 function adjust_icon_position() {
-    let width = window.innerWidth - 2 * window_margin - right_block;
+    let width = window.innerWidth - 2 * window_margin - right_block - left_block;
     let margin_left = window_margin + width / 2 - 100;
     document.getElementById("last_step").style.marginLeft = margin_left + "px";
 }

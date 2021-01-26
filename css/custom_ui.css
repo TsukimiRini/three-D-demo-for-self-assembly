@@ -165,3 +165,9 @@
 .active:after {
     content: "\2212";
 }
+
+.flex-father-center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}

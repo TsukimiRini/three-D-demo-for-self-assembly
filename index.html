@@ -38,6 +38,15 @@
 	<!-- <script src="./js/downscale/downsample.js"></script>
 	<script src="./js/downscale/downscale.js"></script> -->
 	<script type="module" src="./js/three-D-demo.js"></script>
+	<div style="float: left;width:400px;flex-direction:column;" class="flex-father-center">
+		<div id="shape-slider" class="splide" style="width: 300px;">
+			<div class="splide__track">
+				<ul class="splide__list" id="images_show" style="text-align: center;">
+				</ul>
+			</div>
+		</div>
+		<div id="size_tags" style="margin-top: 30px;"></div>
+	</div>
 	<div class="center_block" style="float:left;">
 		<div id="threeJS">
 			<div id="GUI"></div>
@@ -142,47 +151,10 @@
 	</div>
 
 	<!--形状选择弹窗-->
-	<div class="custom_bg" id="predefined_shape_selector">
-		<span class="helper"></span>
-		<div style="width: 70%;max-width: 800px;">
-			<div class="popupCloseButton" id="stored_shape_close">&times;</div>
-			<div class="custom_row">
-				<label class="custom_title">Shapes</label>
-			</div>
-			<div id="shape-slider" class="splide">
-				<div class="splide__track">
-					<ul class="splide__list" id="images_show">
-						<!-- <li class="splide__slide">
-							<img src="img/image1.png">
-						</li>
-						<li class="splide__slide">
-							<img src="img/image2.png">
-						</li>
-						<li class="splide__slide">
-							<img src="img/image1.png">
-						</li> -->
-					</ul>
-				</div>
-			</div>
 
-			<div class="custom_row">
-				<label class="custom_title">Grid Size</label>
-			</div>
-			<div id="size_tags">
-			</div>
-			<!-- <div class="pair_radio">
-				<input type="radio" name="grid_size" id="s1" class="stored_shape_size_radio">
-				<label class="radio_lbl" for="s1">16&times;16</label>
-			</div>
-			<div class="pair_radio">
-				<input type="radio" name="grid_size" id="s2" class="stored_shape_size_radio">
-				<label class="radio_lbl" for="s2">32&times;32</label>
-			</div> -->
-			<div class="custom_row" style="text-align: center;">
-				<button type="button" class="confirm" id="stored_shape_apply">Apply</button>
-				<button type="button" class="cancel" id="stored_shape_cancel">Cancel</button>
-			</div>
-		</div>
+	<div class="custom_row" style="text-align: center;" style="display: none;">
+		<button type="button" class="confirm" id="stored_shape_apply"  style="display: none;">Apply</button>
+		<button type="button" class="cancel" id="stored_shape_cancel"  style="display: none;">Cancel</button>
 	</div>
 </body>
 
