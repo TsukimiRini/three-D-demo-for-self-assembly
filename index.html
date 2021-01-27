@@ -38,7 +38,38 @@
 	<!-- <script src="./js/downscale/downsample.js"></script>
 	<script src="./js/downscale/downscale.js"></script> -->
 	<script type="module" src="./js/three-D-demo.js"></script>
-	<div style="float: left;width:400px;flex-direction:column;" class="flex-father-center">
+	<!-- 左边栏 -->
+	<div style="float: left;width:400px;flex-direction:column;margin: 20px 0 20px 0;" class="flex-father-center">
+		<div>
+			<label class="custom_title">Animation Setting</label>
+		</div>
+		<div>
+			<img src="img/icon/last_step.png" style="width: 50px;" class="image_btn_inactive" id="last_step">
+			<img src="img/icon/pause.png" style="width: 50px;" class="image_btn" id="pause">
+			<img src="img/icon/next_step.png" style="width: 50px;" class="image_btn_inactive" id="next_step">
+		</div>
+		<div class="rangeContainer">
+			speed:<input type="range" min="1" max="10" defaultValue="5" class="range" style="margin-left: 10px;"
+				id="speedRange"><span id="speedVal"></span>
+		</div>
+		<div>
+			agent type:
+			<select id="typeSelector">
+			</select>
+		</div>
+		<div>
+			<input type="checkbox" name="showGrid" checked=truen id="showGrid">show grid
+		</div>
+
+		<div>
+			<label class="custom_title">Custom Shape Setting</label>
+		</div>
+		<button style="width: 90%; background-color: #2fa1d6;" class="confirm" id="draw2Shape">Draw a shape</button>
+		<button style="width: 90%; margin-top: 3px;background-color: #2fa1d6;" class="confirm" id="pic2Shape">Upload a picture</button>
+
+		<div>
+			<label class="custom_title">Stored Shapes</label>
+		</div>
 		<div id="shape-slider" class="splide" style="width: 300px;">
 			<div class="splide__track">
 				<ul class="splide__list" id="images_show" style="text-align: center;">
@@ -47,6 +78,8 @@
 		</div>
 		<div id="size_tags" style="margin-top: 30px;"></div>
 	</div>
+
+	<!-- 主视图 -->
 	<div class="center_block" style="float:left;">
 		<div id="threeJS">
 			<div id="GUI"></div>
@@ -64,7 +97,7 @@
 	</div>
 
 	<!-- 流程控制栏 -->
-	<div style="bottom: 50px;width: 200px;height: 100px;z-index: 4;" class="float_nav" id="float_nav">
+	<!-- <div style="bottom: 50px;width: 200px;height: 100px;z-index: 4;" class="float_nav" id="float_nav">
 		<img src="img/icon/last_step.png" style="left: 10%;margin-top:10%;width: 50px;height: 50px;position: absolute;"
 			class="image_btn_inactive" id="last_step">
 		<img src="img/icon/pause.png" style="left: 35%;margin-top:10%;width: 50px;height: 50px;position: absolute;"
@@ -72,7 +105,7 @@
 		<img src="img/icon/next_step.png" style="left: 60%;margin-top:10%;width: 50px;height: 50px;position: absolute;"
 			class="image_btn_inactive" id="next_step">
 	</div>
-	<button class="collapsible" style="bottom: 45px;width: 20px;height: 110px;" id="collapse_btn"></button>
+	<button class="collapsible" style="bottom: 45px;width: 20px;height: 110px;" id="collapse_btn"></button> -->
 
 	<!-- 悬停气泡 -->
 	<div class="tooltip" id="tooltip"></div>
@@ -153,8 +186,8 @@
 	<!--形状选择弹窗-->
 
 	<div class="custom_row" style="text-align: center;" style="display: none;">
-		<button type="button" class="confirm" id="stored_shape_apply"  style="display: none;">Apply</button>
-		<button type="button" class="cancel" id="stored_shape_cancel"  style="display: none;">Cancel</button>
+		<button type="button" class="confirm" id="stored_shape_apply" style="display: none;">Apply</button>
+		<button type="button" class="cancel" id="stored_shape_cancel" style="display: none;">Cancel</button>
 	</div>
 </body>
 

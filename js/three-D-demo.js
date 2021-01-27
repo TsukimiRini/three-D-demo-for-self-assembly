@@ -112,14 +112,6 @@ let shape_config = {
 let params = {
     speed: 13 - fp_mov / 10,
     agent_type: agent_types[agent_id],
-    show_grid: {
-        get ShowGrid() {
-            return grid.material.visible;
-        },
-        set ShowGrid(v) {
-            grid.material.visible = v;
-        }
-    },
     custom_pad: CUSTOM_PAD.popup_custom_pad,
     image_upload_pad: CUSTOM_PAD.show_image_upload_popup,
     // stored_shape_pad: STORED_SHAPE_PAD.popup_stored_shape,
@@ -258,18 +250,41 @@ function web_worker_receive_msg(evt) {
 
 // create config pad
 function create_GUI() {
-    let gui = new GUI({ autoPlace: false });
-    // 动画渲染参数设置
-    let animation = gui.addFolder("Animation");
-    // 自定义形状设置
-    let custom_folder = gui.addFolder("Custom Shape Setting");
-    document.getElementById("GUI").appendChild(gui.domElement);
-    GUI_domElement.speed = animation.add(params, "speed", 1, 10, 1).name('Speed');
-    GUI_domElement.agent_type = animation.add(params, "agent_type").name('Agent type').options(agent_types);
-    animation.add(params.show_grid, "ShowGrid").name('Show Grid');
-    GUI_functions.draw_shape = custom_folder.add(params, 'custom_pad').name('Draw a shape');
-    GUI_functions.upload_shape = custom_folder.add(params, 'image_upload_pad').name('Upload a pic')
-    gui.add(params, "change_vp").name("Adjust camera");
+    // 速度控制条
+    let speedRange = document.getElementById('speedRange'), speedVal = document.getElementById('speedVal');
+    function speedChange(){
+        speedVal.innerHTML = speedRange.value;
+        params.speed = speedRange.value;
+    }
+    speedChange();
+    speedRange.addEventListener('change', speedChange)
+
+    // agent type切换
+    let type_selector = document.getElementById('typeSelector');
+    for (let type of agent_types){
+        let ele = document.createElement('option');
+        ele.value = type;
+        ele.innerHTML = type;
+        type_selector.appendChild(ele);
+    }
+    type_selector.value = agent_types[agent_id];
+    function typeChange(){
+        params.agent_type = type_selector.value;
+    }
+    type_selector.addEventListener('change', typeChange);
+
+    // 隐藏grid
+    let showGrid = document.getElementById('showGrid');
+    showGrid.checked = grid.material.visible;
+    showGrid.addEventListener('change', function(){
+        grid.material.visible = showGrid.checked;
+    })
+
+    // 绘图转为shape
+    let draw2Shape = document.getElementById('draw2Shape');
+    draw2Shape.addEventListener('click', params.custom_pad);
+    let pic2Shape = document.getElementById('pic2Shape');
+    pic2Shape.addEventListener('click', params.image_upload_pad);
 }
 
 // compute the shape of pattern to draw the outline
@@ -726,7 +741,7 @@ function init() {
         colorE: '#0000ff',
         minVal: 0,
         maxVal: 10,
-        tooltip: document.getElementById('tooltip_r'),
+        tooltip: document.getElementById('tooltip_b'),
     })
     htmap_r.init();
     htmap_b.init();
@@ -735,7 +750,7 @@ function init() {
     window.onresize = resize_window;
 
     // 使流程控制栏折叠功能生效
-    collapse_icons_init();
+    // collapse_icons_init();
 }
 
 // resize事件函数
@@ -1621,24 +1636,24 @@ function step_change_helper(slipt_step, minus) {
     }
 }
 
-function adjust_icon_position() {
-    let width = window.innerWidth - 2 * window_margin - right_block - left_block;
-    let margin_left = window_margin + width / 2 - 100;
-    document.getElementById("last_step").style.marginLeft = margin_left + "px";
-}
+// function adjust_icon_position() {
+//     let width = window.innerWidth - 2 * window_margin - right_block - left_block;
+//     let margin_left = window_margin + width / 2 - 100;
+//     document.getElementById("last_step").style.marginLeft = margin_left + "px";
+// }
 
-function collapse_icons_init() {
-    var coll = document.getElementById("collapse_btn");
-    coll.addEventListener("click", function () {
-        this.classList.toggle("active");
-        var content = document.getElementById("float_nav");
-        if (content.style.maxWidth) {
-            content.style.maxWidth = null;
-        } else {
-            content.style.maxWidth = 200 + "px";
-        }
-    })
-}
+// function collapse_icons_init() {
+//     var coll = document.getElementById("collapse_btn");
+//     coll.addEventListener("click", function () {
+//         this.classList.toggle("active");
+//         var content = document.getElementById("float_nav");
+//         if (content.style.maxWidth) {
+//             content.style.maxWidth = null;
+//         } else {
+//             content.style.maxWidth = 200 + "px";
+//         }
+//     })
+// }
 
 // 绘制热力图
 function draw_ALF() {

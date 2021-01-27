@@ -82,7 +82,7 @@ function load_on_first_time() {
         lazyLoad: 'nearby',
         updateOnMove: true,
         direction: 'ttb',
-        height: '600px',
+        height: '400px',
     });
     splider_obj.on("mounted", function () {
         splider_obj.go('+1');
