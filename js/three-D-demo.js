@@ -1360,6 +1360,7 @@ document.getElementById("apply").addEventListener("click", function () {
         agent_num: shape_config.agent_num, grid_data: grid_data
     });
     CUSTOM_PAD.hide_custom_shape_popup();
+    goToNext = false;
 })
 
 // 上传图片面板apply按钮事件
@@ -1393,11 +1394,14 @@ document.getElementById("img_apply").addEventListener("click", function () {
                 agent_num: shape_config.agent_num, grid_data: grid_data
             });
             CUSTOM_PAD.hide_image_upload_popup();
+            goToNext = false;
         };
     }
 });
 
 function set_stored_shape(){
+    goToNext = true;
+
     let radios = document.getElementsByName("grid_size");
     let has_checked = null; // 选中的规模
     for (let i = 0; i < radios.length; i++) {
