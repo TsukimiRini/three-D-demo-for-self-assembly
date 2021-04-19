@@ -49,6 +49,8 @@ let outline_h = 1;
 let goToNext = true;
 // 从stored shape中选取形状
 let chooseFromStored = true;
+// 暂停时修改自定义形状保留agent位置
+let keepPos = true;
 
 // 上一步/下一步按钮的粒度设置
 const slipt_of_step = 5;
@@ -1335,6 +1337,15 @@ function arrTrans(num, arr) {
     return newArr;
 }
 
+function copyArr(arr){
+    let re=[];
+    for(let i=0;i<arr.length;i++){
+        let [...arr1]=arr;
+        re.push(arr1);
+    }
+    return re;
+}
+
 // 自定义面板按钮事件
 document.getElementById("apply").addEventListener("click", function () {
     // 检查用户定义的形状是否合法
@@ -1349,15 +1360,47 @@ document.getElementById("apply").addEventListener("click", function () {
         return;
     }
     grid_data = arrTrans(CUSTOM_PAD.width, CUSTOM_PAD.new_shape_data);
-    console.log(grid_data)
+
+    let init_poses_data = null;
+    let genFromCur = false;
+    if(shape_config.grid_w == CUSTOM_PAD.width && shape_config.grid_h == CUSTOM_PAD.height && paused && keepPos){
+        init_poses_data= poses_data[mov_para.step].slice(0, Math.min(CUSTOM_PAD.agent_num*2, shape_config.agent_num*2));
+        if(poses_data[mov_para.step].length<CUSTOM_PAD.agent_num*2){
+            let minus = (CUSTOM_PAD.agent_num * 2 - poses_data[mov_para.step].length)/2;
+            let valid = [];
+            let gridAndPoses = copyArr(grid_data);
+            for(let i=0;i<shape_config.agent_num;i++){
+                let x = poses_data[mov_para.step][2*i], y = poses_data[mov_para.step][2*i+1];
+                gridAndPoses[shape_config.grid_h-y-1][x]=1;
+            }
+            for(let i=0;i<CUSTOM_PAD.width;i++){
+                for(let j=0;j<CUSTOM_PAD.height;j++){
+                    if(gridAndPoses[shape_config.grid_h-j-1][i]!=1)
+                        valid.push([i,j]);
+                }
+            }
+            while(minus!=0){
+                let randN = Math.floor(Math.random()*valid.length);
+                init_poses_data.push(valid[randN][0]);
+                init_poses_data.push(valid[randN][1]);
+                valid[randN] = valid[valid.length - 1];
+                valid.length = valid.length - 1;
+                minus--;
+            }
+        }
+        genFromCur = true;
+    }
     shape_config.grid_w = CUSTOM_PAD.width, shape_config.grid_h = CUSTOM_PAD.height;
     shape_config.shape_num = custom_shape_id;
     shape_config.agent_num = CUSTOM_PAD.agent_num;
     poses_data.length = 0;
+    if(init_poses_data!=null){
+        poses_data.push(init_poses_data);
+    }
     done = false;
     web_worker.postMessage({
-        MessagePurpose: "getPoseData", width: shape_config.grid_w, height: shape_config.grid_h, shape_num: shape_config.shape_num,
-        agent_num: shape_config.agent_num, grid_data: grid_data
+        MessagePurpose: "getPoseData", genFromCur: genFromCur, width: shape_config.grid_w, height: shape_config.grid_h, shape_num: shape_config.shape_num,
+        agent_num: shape_config.agent_num, grid_data: grid_data, poses_data: init_poses_data
     });
     CUSTOM_PAD.hide_custom_shape_popup();
     goToNext = false;
@@ -1384,14 +1427,48 @@ document.getElementById("img_apply").addEventListener("click", function () {
         image.onload = function () {
             let obj = generateGrid(image, size, size);
             grid_data = obj.grid;
+            let init_poses_data = null;
+            let genFromCur = false;
+            if(shape_config.grid_w == size && shape_config.grid_h == size && paused && keepPos){
+                console.log("111")
+                init_poses_data= poses_data[mov_para.step].slice(0, Math.min(obj.agent_num*2, shape_config.agent_num*2));
+                console.log("pose", init_poses_data)
+                if(poses_data[mov_para.step].length<obj.agent_num*2){
+                    let minus = (obj.agent_num * 2 - poses_data[mov_para.step].length)/2;
+                    let valid = [];
+                    let gridAndPoses = copyArr(grid_data);
+                    for(let i=0;i<shape_config.agent_num;i++){
+                        let x = poses_data[mov_para.step][2*i], y = poses_data[mov_para.step][2*i+1];
+                        gridAndPoses[shape_config.grid_h-y-1][x]=1;
+                    }
+                    for(let i=0;i<size;i++){
+                        for(let j=0;j<size;j++){
+                            if(gridAndPoses[shape_config.grid_h-j-1][i]!=1)
+                                valid.push([i,j]);
+                        }
+                    }
+            while(minus!=0){
+                let randN = Math.floor(Math.random()*valid.length);
+                init_poses_data.push(valid[randN][0]);
+                init_poses_data.push(valid[randN][1]);
+                valid[randN] = valid[valid.length - 1];
+                valid.length = valid.length - 1;
+                minus--;
+            }
+        }
+        genFromCur = true;
+    }
             shape_config.agent_num = obj.agent_num;
             shape_config.grid_w = size, shape_config.grid_h = size;
             shape_config.shape_num = custom_shape_id;
             poses_data.length = 0;
+            if(init_poses_data!=null){
+                poses_data.push(init_poses_data);
+            }
             done = false;
             web_worker.postMessage({
-                MessagePurpose: "getPoseData", width: shape_config.grid_w, height: shape_config.grid_h, shape_num: shape_config.shape_num,
-                agent_num: shape_config.agent_num, grid_data: grid_data
+                MessagePurpose: "getPoseData", genFromCur: genFromCur, width: shape_config.grid_w, height: shape_config.grid_h, shape_num: shape_config.shape_num,
+                agent_num: shape_config.agent_num, grid_data: grid_data, poses_data: init_poses_data
             });
             CUSTOM_PAD.hide_image_upload_popup();
             goToNext = false;
