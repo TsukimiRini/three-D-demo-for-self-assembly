@@ -131,8 +131,8 @@ Heatmap.prototype = {
                     this.ctxData.fillStyle = gradientColor(this.colorS, this.colorE, data[i][j] / this.maxVal);
                 }
 
-                this.ctxData.fillRect(this.startPoint.x + j * this.disX / this.gapW,
-                    this.startPoint.y - (this.gridW - i) * this.disY / this.gapH, this.disX / this.gapW, this.disY / this.gapH);
+                this.ctxData.fillRect(this.startPoint.x + (this.gridW - j) * this.disX / this.gapW,
+                    this.startPoint.y - (this.gridH - i) * this.disY / this.gapH, this.disX / this.gapW, this.disY / this.gapH);
             }
         }
         const mousemoveEvent = new MouseEvent('mousemove', {
